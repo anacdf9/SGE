@@ -1,16 +1,20 @@
 CC = gcc
 TARGET = SGE.exe
 
-# IUP
+# Caminhos do IUP
 IUP_INCLUDE_PATH = D:/Codes/resposVS/SGE/lib/iup/include
 IUP_LIB_PATH = D:/Codes/resposVS/SGE/lib/iup
 
+# Bibliotecas
 LIBS_WIN = -lgdi32 -lcomctl32 -luser32 -lole32 -mwindows
 LIBS_IUP = -liup -liupcontrols
 
+
+# Flags
 CFLAGS = -Wall -g -std=c99 -I$(IUP_INCLUDE_PATH) -Isrc -Isrc/model -Isrc/controller -Isrc/view
 LDFLAGS = -L$(IUP_LIB_PATH) $(LIBS_IUP) $(LIBS_WIN)
 
+# Fontes
 SRCS = \
     main.c \
     src/controller/cliente_controller.c \
@@ -23,17 +27,23 @@ SRCS = \
 
 OBJS = $(SRCS:.c=.o)
 
+# === Regras ===
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	@echo "--- Linkando o programa final: $(TARGET) ---"
+	@echo.
+	@echo --- Linkando programa final: $(TARGET) ---
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
-	@echo "--- Compilacao concluida! ---"
+	@echo --- Compilação concluída com sucesso! ---
 
 %.o: %.c
-	@echo "--- Compilando: $< ---"
+	@echo.
+	@echo --- Compilando: $< ---
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@echo "--- Limpando arquivos compilados ---"
-	-del /F /Q $(OBJS) $(TARGET) 2>NUL || (exit 0)
+	@echo.
+	@echo --- Limpando arquivos compilados ---
+	@if exist $(TARGET) del /f /q $(TARGET)
+	@for %%f in ($(OBJS)) do if exist "%%f" del /f /q "%%f"
+	@echo --- Limpeza concluída ---

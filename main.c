@@ -1,61 +1,62 @@
-#include <stdio.h>
 #include <iup.h>
+#include <iupcontrols.h> // <-- ESSA LINHA QUE FALTAVA (ou não salvou)
+#include <stdlib.h>      // (Esse aqui era pro NULL)
+
+#include "src/view/cliente_view.h"
 #include "src/config.h"
 #include "src/model/pers.h"
-#include "src/view/cliente_view.h"
-#include "iupcontrols.h"
 
-static Ihandle *dlgMain;
-
-static int btn_abrir_clientes_cb(Ihandle *self) {
-    cliente_view_mostrar();
+/* Callback para o menu "Clientes" */
+int btn_abrir_clientes_cb(void) {
+    cliente_view_mostrar(); 
     return IUP_DEFAULT;
 }
 
-static int btn_sair_cb(Ihandle *self) {
-    IupExitLoop();
-    return IUP_CLOSE;
+/* Callback para o menu "Sair" */
+int btn_sair_cb(void) {
+    return IUP_CLOSE; // Comando do IUP para fechar o MainLoop
 }
 
 int main(int argc, char **argv) {
     IupOpen(&argc, &argv);
-    IupSetGlobal("UTF8MODE", "YES"); /* ativar acentuação no IUP */
+    IupControlsOpen(); // <-- Essa função precisa do <iupcontrols.h>
 
-    /* inicializa persistência conforme config (TIPO_PERSISTENCIA definido em src/config.h) */
     pers_inicializar(TIPO_PERSISTENCIA);
 
-    /* Interface principal simples */
-    IupSetLanguage(IUP_ENGLISH); /* mantém idioma neutro */
-
-    Ihandle *btnClientes = IupButton("Clientes", NULL);
-    Ihandle *btnSair = IupButton("Sair", NULL);
-    IupSetCallback(btnClientes, "ACTION", (Icallback)btn_abrir_clientes_cb);
-    IupSetCallback(btnSair, "ACTION", (Icallback)btn_sair_cb);
-    IupSetAttribute(btnClientes, "SIZE", "200x40");
-    IupSetAttribute(btnSair, "SIZE", "200x40");
-
-    Ihandle *v = IupVbox(
-        IupLabel("Sistema de Gestão de Eventos (SGE)"),
-        IupFill(),
-        btnClientes,
-        IupFill(),
-        btnSair,
+    Ihandle *menu = IupMenu(
+        IupSubmenu("Cadastros", IupMenu(
+            IupItem("Clientes", "btn_abrir_clientes_cb"),
+            IupItem("Equipe Interna", NULL), 
+            IupItem("Recursos/Equipamentos", NULL),
+            IupItem("Fornecedores/Parceiros", NULL),
+            IupSeparator(),
+            IupItem("Sair", "btn_sair_cb")
+            ,NULL
+        )),
+        IupSubmenu("Eventos", IupMenu(
+            IupItem("Novo Orçamento", NULL),
+            IupItem("Gerenciar Eventos", NULL),
+            NULL
+        )),
         NULL
     );
-    IupSetAttribute(v, "GAP", "10");
-    IupSetAttribute(v, "MARGIN", "20x20");
-    IupSetAttribute(v, "ALIGNMENT", "ACENTER");
 
-    dlgMain = IupDialog(v);
-    IupSetAttribute(dlgMain, "TITLE", "SGE - Menu Principal");
-    IupSetAttribute(dlgMain, "SIZE", "400x300");
+    // CRIA A JANELA PRINCIPAL
+    Ihandle *dlg_main = IupDialog(
+        IupVbox(NULL) // Janela vazia
+    );
+    IupSetAttribute(dlg_main, "TITLE", "SGE (Sistema de Gestão de Eventos)");
+    IupSetAttribute(dlg_main, "SIZE", "800x600");
+    
+    // Associa o menu à janela principal
+    IupSetAttributeHandle(dlg_main, "MENU", menu);
+    
+    // Registra os callbacks (só precisa registrar 1x)
+    IupSetFunction("btn_abrir_clientes_cb", (Icallback)btn_abrir_clientes_cb);
+    IupSetFunction("btn_sair_cb", (Icallback)btn_sair_cb);
 
-    IupShowXY(dlgMain, IUP_CENTER, IUP_CENTER);
-
+    IupShowXY(dlg_main, IUP_CENTER, IUP_CENTER);
     IupMainLoop();
-
-    /* quando sair do loop principal, finaliza persistência e IUP */
-    pers_finalizar();
     IupClose();
     return 0;
 }

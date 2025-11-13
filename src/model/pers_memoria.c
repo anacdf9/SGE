@@ -19,7 +19,7 @@ int pers_memoria_salvar_cliente(Cliente c) {
     /* se id já existe -> atualizar */
     for (int i = 0; i < total_clientes_mem; i++) {
         if (clientes_mem[i].id == c.id) {
-            clients_mem_copy:
+            // clients_mem_copy:  <-- TIREI ESSE LABEL QUE DAVA WARNING
             clientes_mem[i] = c;
             return 1;
         }

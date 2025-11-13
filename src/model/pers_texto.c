@@ -5,7 +5,8 @@
 
 static const char *ARQ_CLIENTES = "clientes.txt";
 
-/* helper: escape simples para CSV (substitui ';' por ',') */
+/*
+// ESSA FUNÇÃO NÃO ESTAVA SENDO USADA, TAVA DANDO WARNING. COMENTEI ELA.
 static void csv_escape(const char *in, char *out, int outsize) {
     int k = 0;
     for (int i = 0; in[i] != '\0' && k + 1 < outsize; i++) {
@@ -18,6 +19,7 @@ static void csv_escape(const char *in, char *out, int outsize) {
     }
     out[k] = '\0';
 }
+*/
 
 void pers_texto_inicializar(void) {
     /* nada especial (arquivo criado quando salvarmos) */
@@ -29,8 +31,10 @@ void pers_texto_finalizar(void) {
 
 int pers_texto_salvar_cliente(Cliente c) {
     /* estratégia simples: ler todos, substituir por id se existir, senão append */
-    Cliente *arr = NULL;
-    int n = pers_texto_carregar_clientes(NULL, 0); /* obter número via leitura? we'll implement differently below */
+    
+    // Cliente *arr = NULL; // <-- VARIÁVEL NÃO USADA, TIREI O WARNING
+    // int n = pers_texto_carregar_clientes(NULL, 0); // <-- VARIÁVEL NÃO USADA, TIREI O WARNING
+    
     /* Implementação prática: reescrever todo o arquivo (safe): carregar todos para memória dinâmica */
     FILE *f = fopen(ARQ_CLIENTES, "r");
     Cliente temp;

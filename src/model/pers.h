@@ -3,6 +3,7 @@
 
 #include "cliente.h"
 #include "config.h"
+#include <stdlib.h>   
 
 /* Inicializa o sistema de persistência (usa TIPO_PERSISTENCIA por padrão) */
 void pers_inicializar(TipoPersistencia tipo);
