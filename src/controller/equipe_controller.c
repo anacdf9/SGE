@@ -1,0 +1,35 @@
+#include <stdlib.h>
+#include <string.h>
+#include "../model/pers.h"
+#include "equipe_controller.h"
+
+int equipe_salvar(Equipe e) { if (e.id <= 0) return 0; return pers_salvar_equipe(e); }
+int equipe_excluir(int id) { return pers_remover_equipe(id); }
+int equipe_listar(Equipe *buffer, int max) { return pers_carregar_equipes(buffer, max); }
+
+int equipe_salvar_cb(Ihandle *self) {
+    Ihandle *txtId = (Ihandle*)IupGetAttribute(self, "txtId");
+    Ihandle *txtNome = (Ihandle*)IupGetAttribute(self, "txtNome");
+    Ihandle *txtCpf = (Ihandle*)IupGetAttribute(self, "txtCpf");
+    Ihandle *txtFunc = (Ihandle*)IupGetAttribute(self, "txtFunc");
+    Ihandle *txtValor = (Ihandle*)IupGetAttribute(self, "txtValor");
+
+    Equipe e;
+    e.id = atoi(IupGetAttribute(txtId, "VALUE"));
+    if (e.id <= 0) { IupMessage("Erro", "ID inválido."); return IUP_DEFAULT; }
+    strcpy(e.nome, IupGetAttribute(txtNome, "VALUE"));
+    strcpy(e.cpf, IupGetAttribute(txtCpf, "VALUE"));
+    strcpy(e.funcao, IupGetAttribute(txtFunc, "VALUE"));
+    e.valor_hora = atof(IupGetAttribute(txtValor, "VALUE"));
+
+    if (equipe_salvar(e)) IupMessage("Sucesso", "Equipe salva."); else IupMessage("Erro", "Falha ao salvar.");
+    return IUP_DEFAULT;
+}
+
+int equipe_excluir_cb(Ihandle *self) {
+    Ihandle *txtId = (Ihandle*)IupGetAttribute(self, "txtId");
+    int id = atoi(IupGetAttribute(txtId, "VALUE"));
+    if (id <= 0) { IupMessage("Erro", "ID inválido."); return IUP_DEFAULT; }
+    if (equipe_excluir(id)) IupMessage("Sucesso", "Registro excluído."); else IupMessage("Erro", "Falha ao excluir.");
+    return IUP_DEFAULT;
+}

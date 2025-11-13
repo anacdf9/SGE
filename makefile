@@ -18,12 +18,22 @@ LDFLAGS = -L$(IUP_LIB_PATH) $(LIBS_IUP) $(LIBS_WIN)
 SRCS = \
     main.c \
     src/controller/cliente_controller.c \
+	src/controller/equipe_controller.c \
+	src/controller/recurso_controller.c \
+	src/controller/fornecedor_controller.c \
+	src/controller/operador_controller.c \
+	src/controller/produtora_controller.c \
     src/model/cliente.c \
     src/model/pers.c \
     src/model/pers_memoria.c \
     src/model/pers_texto.c \
     src/model/pers_binario.c \
-    src/view/cliente_view.c
+	src/view/cliente_view.c \
+	src/view/equipe_view.c \
+	src/view/recurso_view.c \
+	src/view/fornecedor_view.c \
+	src/view/operador_view.c \
+	src/view/produtora_view.c
 
 OBJS = $(SRCS:.c=.o)
 

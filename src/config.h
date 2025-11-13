@@ -12,6 +12,6 @@ typedef enum {
    PERS_TEXTO    -> salva em ".txt"
    PERS_BINARIO  -> salva em ".bin"
 */
-#define TIPO_PERSISTENCIA PERS_MEMORIA
+#define TIPO_PERSISTENCIA PERS_TEXTO
 
 #endif // CONFIG_H

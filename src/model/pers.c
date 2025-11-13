@@ -50,3 +50,106 @@ int pers_remover_cliente(int id) {
     if (tipo_atual == PERS_BINARIO) return pers_binario_remover_cliente(id);
     return 0;
 }
+
+/* ===== Recurso ===== */
+int pers_salvar_recurso(Recurso r) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_recurso(r);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_recurso(r);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_recurso(r);
+    return 0;
+}
+
+int pers_carregar_recursos(Recurso *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_recursos(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_recursos(lista, max);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_carregar_recursos(lista, max);
+    return 0;
+}
+
+int pers_remover_recurso(int id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_recurso(id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_recurso(id);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_recurso(id);
+    return 0;
+}
+
+/* ===== Equipe ===== */
+int pers_salvar_equipe(Equipe e) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_equipe(e);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_equipe(e);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_equipe(e);
+    return 0;
+}
+
+int pers_carregar_equipes(Equipe *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_equipes(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_equipes(lista, max);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_carregar_equipes(lista, max);
+    return 0;
+}
+
+int pers_remover_equipe(int id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_equipe(id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_equipe(id);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_equipe(id);
+    return 0;
+}
+
+/* ===== Fornecedor ===== */
+int pers_salvar_fornecedor(Fornecedor f) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_fornecedor(f);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_fornecedor(f);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_fornecedor(f);
+    return 0;
+}
+
+int pers_carregar_fornecedores(Fornecedor *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_fornecedores(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_fornecedores(lista, max);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_carregar_fornecedores(lista, max);
+    return 0;
+}
+
+int pers_remover_fornecedor(int id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_fornecedor(id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_fornecedor(id);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_fornecedor(id);
+    return 0;
+}
+
+/* ===== Operador ===== */
+int pers_salvar_operador(Operador o) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_operador(o);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_operador(o);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_operador(o);
+    return 0;
+}
+
+int pers_carregar_operadores(Operador *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_operadores(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_operadores(lista, max);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_carregar_operadores(lista, max);
+    return 0;
+}
+
+int pers_remover_operador(int id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_operador(id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_operador(id);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_operador(id);
+    return 0;
+}
+
+/* ===== Produtora (único) ===== */
+int pers_salvar_produtora(Produtora p) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_produtora(p);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_produtora(p);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_produtora(p);
+    return 0;
+}
+
+int pers_obter_produtora(Produtora *out) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_obter_produtora(out);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_obter_produtora(out);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_obter_produtora(out);
+    return 0;
+}
