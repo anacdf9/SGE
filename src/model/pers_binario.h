@@ -33,5 +33,6 @@ int pers_binario_remover_operador(int id);
 
 int pers_binario_salvar_produtora(Produtora p);
 int pers_binario_obter_produtora(Produtora *out);
+int pers_binario_remover_produtora(void);
 
 #endif // PERS_BINARIO_H

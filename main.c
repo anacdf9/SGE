@@ -75,10 +75,22 @@ int main(int argc, char **argv) {
         NULL
     );
 
+    // CONTEUDO INICIAL: mensagem de boas-vindas (centralizada e fonte maior)
+    Ihandle *lbl_title = IupLabel("Bem-vindo ao SGE — Sistema de Gestão de Eventos");
+    IupSetAttribute(lbl_title, "ALIGNMENT", "ACENTER:ACENTER");
+    IupSetAttribute(lbl_title, "FONTSIZE", "18");
+    Ihandle *lbl_hint = IupLabel("Use o menu superior para acessar Cadastros e Eventos.");
+    IupSetAttribute(lbl_hint, "ALIGNMENT", "ACENTER:ACENTER");
+    IupSetAttribute(lbl_hint, "FONTSIZE", "12");
+    Ihandle *vcenter = IupVbox(lbl_title, lbl_hint, NULL);
+    IupSetAttribute(vcenter, "ALIGNMENT", "ACENTER");
+    IupSetAttribute(vcenter, "GAP", "8");
+    Ihandle *hcenter = IupHbox(IupFill(), vcenter, IupFill(), NULL);
+    Ihandle *content = IupVbox(IupFill(), hcenter, IupFill(), NULL);
+    IupSetAttribute(content, "GAP", "6");
+
     // CRIA A JANELA PRINCIPAL
-    Ihandle *dlg_main = IupDialog(
-        IupVbox(NULL) // Janela vazia
-    );
+    Ihandle *dlg_main = IupDialog(content);
     IupSetAttribute(dlg_main, "TITLE", "SGE (Sistema de Gestão de Eventos)");
     IupSetAttribute(dlg_main, "SIZE", "720x480");
     

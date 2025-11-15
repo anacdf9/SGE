@@ -1,6 +1,7 @@
 #include <iup.h>
 #include <iupcontrols.h>
 #include "../controller/recurso_controller.h"
+#include "ui_common.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -64,25 +65,32 @@ static Ihandle* recurso_view_create(void) {
     IupSetAttribute(mat_recurso,"WIDTH1","40"); IupSetAttribute(mat_recurso,"WIDTH2","160"); IupSetAttribute(mat_recurso,"WIDTH3","120");
     IupSetAttribute(mat_recurso,"WIDTH4","50"); IupSetAttribute(mat_recurso,"WIDTH5","80"); IupSetAttribute(mat_recurso,"WIDTH6","80");
 
+    ui_set_width_px(txtId, UI_W_ID);
+    ui_set_width_px(txtCat, UI_W_LONG);
+    ui_set_width_px(txtDesc, UI_W_XLONG);
+    ui_set_width_px(txtQtd, UI_W_SHORT);
+    ui_set_width_px(txtCusto, UI_W_MED);
+    ui_set_width_px(txtLoc, UI_W_MED);
+
     Ihandle *rows = IupVbox(
-        IupVbox(IupLabel("Código:"), txtId, NULL),
-        IupVbox(IupLabel("Descrição:"), txtDesc, NULL),
-        IupVbox(IupLabel("Categoria:"), txtCat, NULL),
-        IupVbox(IupLabel("Quantidade:"), txtQtd, NULL),
-        IupVbox(IupLabel("Preço de Custo:"), txtCusto, NULL),
-        IupVbox(IupLabel("Valor da Locação:"), txtLoc, NULL),
+        ui_pair("Código:", txtId),
+        ui_pair("Categoria:", txtCat),
+        ui_pair("Descrição:", txtDesc),
+        ui_pair("Quantidade:", txtQtd),
+        ui_pair("Preço de Custo:", txtCusto),
+        ui_pair("Valor da Locação:", txtLoc),
         NULL
     );
-    IupSetAttribute(rows, "GAP", "4");
+    ui_style_form(rows);
 
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Recursos/Equipamentos"),
         rows,
-        IupHbox(btnSalvar, btnExcluir, btnAtualizar, NULL),
+        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
         IupSetAttributes(IupFrame(mat_recurso), "TITLE=Lista de Recursos"),
         NULL
     );
-    IupSetAttribute(form, "MARGIN", "8x8");
+    ui_style_form(form);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtDesc", (char*)txtDesc);
@@ -93,8 +101,7 @@ static Ihandle* recurso_view_create(void) {
 
     IupSetAttribute(btnExcluir, "txtId", (char*)txtId);
     IupSetAttribute(btnAtualizar, "MATRIX", (char*)mat_recurso);
-    IupSetAttribute(txtId,"SIZE","60x"); IupSetAttribute(txtDesc,"SIZE","220x"); IupSetAttribute(txtCat,"SIZE","160x");
-    IupSetAttribute(txtQtd,"SIZE","60x"); IupSetAttribute(txtCusto,"SIZE","100x"); IupSetAttribute(txtLoc,"SIZE","100x");
+    /* tamanhos padronizados aplicados por ui_pair */
 
     IupSetAttribute(mat_recurso,"txtId",(char*)txtId); IupSetAttribute(mat_recurso,"txtDesc",(char*)txtDesc);
     IupSetAttribute(mat_recurso,"txtCat",(char*)txtCat); IupSetAttribute(mat_recurso,"txtQtd",(char*)txtQtd);
@@ -114,7 +121,7 @@ void recurso_view_mostrar(void) {
     if (!dlg_recurso) {
         dlg_recurso = IupDialog(recurso_view_create());
         IupSetAttribute(dlg_recurso, "TITLE", "Cadastro de Recursos");
-        IupSetAttribute(dlg_recurso, "SIZE", "720x420");
+        IupSetAttribute(dlg_recurso, "SIZE", "720x540");
     }
     IupShowXY(dlg_recurso, IUP_CENTER, IUP_CENTER);
 }

@@ -42,5 +42,6 @@ int pers_remover_operador(int id);
 /* Produtora (único) */
 int pers_salvar_produtora(Produtora p);
 int pers_obter_produtora(Produtora *out);
+int pers_remover_produtora(void);
 
 #endif // PERS_H

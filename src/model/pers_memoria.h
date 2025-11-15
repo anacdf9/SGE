@@ -38,5 +38,6 @@ int pers_memoria_remover_operador(int id);
 /* Produtora (cadastro único) */
 int pers_memoria_salvar_produtora(Produtora p);
 int pers_memoria_obter_produtora(Produtora *out);
+int pers_memoria_remover_produtora(void);
 
 #endif // PERS_MEMORIA_H

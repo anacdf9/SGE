@@ -153,3 +153,10 @@ int pers_obter_produtora(Produtora *out) {
     if (tipo_atual == PERS_BINARIO) return pers_binario_obter_produtora(out);
     return 0;
 }
+
+int pers_remover_produtora(void) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_produtora();
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_produtora();
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_produtora();
+    return 0;
+}

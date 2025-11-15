@@ -1,0 +1,20 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.lib
+*.a
+*.dll.a
+*.exp
+*.log
+*.tmp
+*.cache
+
+# Editor/OS
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db

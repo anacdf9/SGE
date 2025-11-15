@@ -1,8 +1,11 @@
 #include <iup.h>
 #include <iupcontrols.h>
 #include "../controller/equipe_controller.h"
+#include "ui_common.h"
+#include "validation.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 static Ihandle *dlg_equipe = NULL;
 static Ihandle *mat_equipe = NULL;
@@ -32,6 +35,13 @@ static int equipe_click_cb(Ihandle *mat,int lin,int col,char *status){ if(lin<=0
 static int equipe_atualizar_cb(Ihandle *self){ Ihandle *m=(Ihandle*)IupGetAttribute(self,"MATRIX"); equipe_recarregar_matriz(m); return IUP_DEFAULT; }
 
 static int equipe_salvar_wrap_cb(Ihandle *self){
+    Ihandle *txtCpf = (Ihandle*)IupGetAttribute(self, "txtCpf");
+    const char* s = IupGetAttribute(txtCpf, "VALUE");
+    /* aceita apenas CPF: 11 dígitos */
+    if (!ui_valid_cpf_cnpj(s) || (s && s[0] && (int)strlen(s) != 11)) {
+        IupMessage("Dados inválidos", "CPF deve conter 11 dígitos (apenas números).");
+        return IUP_DEFAULT;
+    }
     equipe_salvar_cb(self);
     if (mat_equipe) equipe_recarregar_matriz(mat_equipe);
     return IUP_DEFAULT;
@@ -58,24 +68,31 @@ static Ihandle* equipe_view_create(void) {
     IupSetAttribute(mat_equipe,"NUMCOL","5"); IupSetAttribute(mat_equipe,"NUMLIN","1"); IupSetAttribute(mat_equipe,"EXPAND","YES");
     IupSetAttribute(mat_equipe,"WIDTH1","40"); IupSetAttribute(mat_equipe,"WIDTH2","160"); IupSetAttribute(mat_equipe,"WIDTH3","120"); IupSetAttribute(mat_equipe,"WIDTH4","120"); IupSetAttribute(mat_equipe,"WIDTH5","80");
 
+    ui_set_width_px(txtId, UI_W_ID);
+    ui_set_width_px(txtCpf, UI_W_MED);
+    ui_set_width_px(txtNome, UI_W_XLONG);
+    ui_set_width_px(txtFunc, UI_W_LONG);
+    ui_set_width_px(txtValor, UI_W_SHORT);
+    IupSetAttribute(txtCpf, "TIP", "CPF: 11 dígitos (somente números)");
+
     Ihandle *rows = IupVbox(
-        IupVbox(IupLabel("Código:"), txtId, NULL),
-        IupVbox(IupLabel("Nome:"), txtNome, NULL),
-        IupVbox(IupLabel("CPF:"), txtCpf, NULL),
-        IupVbox(IupLabel("Função:"), txtFunc, NULL),
-        IupVbox(IupLabel("Valor diária/hora:"), txtValor, NULL),
+        ui_pair("Código:", txtId),
+        ui_pair("CPF:", txtCpf),
+        ui_pair("Nome:", txtNome),
+        ui_pair("Função:", txtFunc),
+        ui_pair("Valor diária/hora:", txtValor),
         NULL
     );
-    IupSetAttribute(rows, "GAP", "4");
+    ui_style_form(rows);
 
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Equipe Interna"),
         rows,
-        IupHbox(btnSalvar, btnExcluir, btnAtualizar, NULL),
+        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
         IupSetAttributes(IupFrame(mat_equipe), "TITLE=Lista de Equipe"),
         NULL
     );
-    IupSetAttribute(form, "MARGIN", "8x8");
+    ui_style_form(form);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNome", (char*)txtNome);
@@ -85,7 +102,7 @@ static Ihandle* equipe_view_create(void) {
 
     IupSetAttribute(btnExcluir, "txtId", (char*)txtId);
     IupSetAttribute(btnAtualizar, "MATRIX", (char*)mat_equipe);
-    IupSetAttribute(txtId,"SIZE","60x"); IupSetAttribute(txtNome,"SIZE","220x"); IupSetAttribute(txtCpf,"SIZE","140x"); IupSetAttribute(txtFunc,"SIZE","180x"); IupSetAttribute(txtValor,"SIZE","100x");
+    /* tamanhos padronizados aplicados por ui_pair */
 
     IupSetAttribute(mat_equipe,"txtId",(char*)txtId); IupSetAttribute(mat_equipe,"txtNome",(char*)txtNome); IupSetAttribute(mat_equipe,"txtCpf",(char*)txtCpf); IupSetAttribute(mat_equipe,"txtFunc",(char*)txtFunc); IupSetAttribute(mat_equipe,"txtValor",(char*)txtValor);
 
@@ -103,7 +120,7 @@ void equipe_view_mostrar(void) {
     if (!dlg_equipe) {
         dlg_equipe = IupDialog(equipe_view_create());
         IupSetAttribute(dlg_equipe, "TITLE", "Cadastro de Equipe");
-        IupSetAttribute(dlg_equipe, "SIZE", "700x420");
+        IupSetAttribute(dlg_equipe, "SIZE", "720x520");
     }
     IupShowXY(dlg_equipe, IUP_CENTER, IUP_CENTER);
 }

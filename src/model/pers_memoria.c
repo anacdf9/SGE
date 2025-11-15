@@ -187,3 +187,10 @@ int pers_memoria_obter_produtora(Produtora *out) {
     if (!produtora_definida || !out) return 0;
     *out = produtora_mem; return 1;
 }
+
+int pers_memoria_remover_produtora(void) {
+    if (!produtora_definida) return 0;
+    produtora_definida = 0;
+    memset(&produtora_mem, 0, sizeof(Produtora));
+    return 1;
+}

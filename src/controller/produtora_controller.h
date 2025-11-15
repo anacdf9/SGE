@@ -6,8 +6,10 @@
 
 int produtora_salvar(Produtora p);
 int produtora_obter(Produtora *out);
+int produtora_remover(void);
 
 int produtora_salvar_cb(Ihandle *self);
 int produtora_carregar_cb(Ihandle *self);
+int produtora_excluir_cb(Ihandle *self);
 
 #endif

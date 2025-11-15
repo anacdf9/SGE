@@ -1,6 +1,8 @@
 #include <iup.h>
 #include <iupcontrols.h>
 #include "../controller/fornecedor_controller.h"
+#include "ui_common.h"
+#include "validation.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -27,6 +29,12 @@ static int fornecedor_click_cb(Ihandle *mat,int lin,int col,char *status){ if(li
 static int fornecedor_atualizar_cb(Ihandle *self){ Ihandle *m=(Ihandle*)IupGetAttribute(self,"MATRIX"); fornecedor_recarregar_matriz(m); return IUP_DEFAULT; }
 
 static int fornecedor_salvar_wrap_cb(Ihandle *self){
+    Ihandle *txtDoc = (Ihandle*)IupGetAttribute(self, "txtDoc");
+    Ihandle *txtTel = (Ihandle*)IupGetAttribute(self, "txtTel");
+    const char* doc = IupGetAttribute(txtDoc, "VALUE");
+    const char* tel = IupGetAttribute(txtTel, "VALUE");
+    if (!ui_valid_cpf_cnpj(doc)) { IupMessage("Dados inválidos", "Documento deve ser CPF(11) ou CNPJ(14) somente com dígitos."); return IUP_DEFAULT; }
+    if (!ui_valid_phone(tel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
     fornecedor_salvar_cb(self);
     if (mat_forn) fornecedor_recarregar_matriz(mat_forn);
     return IUP_DEFAULT;
@@ -55,26 +63,36 @@ static Ihandle* fornecedor_view_create(void) {
     IupSetAttribute(mat_forn,"NUMCOL","7"); IupSetAttribute(mat_forn,"NUMLIN","1"); IupSetAttribute(mat_forn,"EXPAND","YES");
     IupSetAttribute(mat_forn,"WIDTH1","40"); IupSetAttribute(mat_forn,"WIDTH2","140"); IupSetAttribute(mat_forn,"WIDTH3","160"); IupSetAttribute(mat_forn,"WIDTH4","100"); IupSetAttribute(mat_forn,"WIDTH5","200"); IupSetAttribute(mat_forn,"WIDTH6","100"); IupSetAttribute(mat_forn,"WIDTH7","120");
 
+    ui_set_width_px(txtId, UI_W_ID);
+    ui_set_width_px(txtDoc, UI_W_MED);
+    ui_set_width_px(txtNF, UI_W_XLONG);
+    ui_set_width_px(txtRS, UI_W_XLONG);
+    ui_set_width_px(txtEnd, UI_W_XLONG);
+    ui_set_width_px(txtTel, UI_W_MED);
+    ui_set_width_px(txtServ, UI_W_LONG);
+    IupSetAttribute(txtDoc, "TIP", "Somente dígitos: CPF=11, CNPJ=14");
+    IupSetAttribute(txtTel, "TIP", "Somente dígitos: Tel=10-11");
+
     Ihandle *rows = IupVbox(
-        IupVbox(IupLabel("Código:"), txtId, NULL),
-        IupVbox(IupLabel("Nome Fantasia:"), txtNF, NULL),
-        IupVbox(IupLabel("Razão Social:"), txtRS, NULL),
-        IupVbox(IupLabel("CNPJ/CPF:"), txtDoc, NULL),
-        IupVbox(IupLabel("Endereço:"), txtEnd, NULL),
-        IupVbox(IupLabel("Telefone:"), txtTel, NULL),
-        IupVbox(IupLabel("Tipo de Serviço:"), txtServ, NULL),
+        ui_pair("Código:", txtId),
+        ui_pair("CNPJ/CPF:", txtDoc),
+        ui_pair("Nome Fantasia:", txtNF),
+        ui_pair("Razão Social:", txtRS),
+        ui_pair("Endereço:", txtEnd),
+        ui_pair("Telefone:", txtTel),
+        ui_pair("Tipo de Serviço:", txtServ),
         NULL
     );
-    IupSetAttribute(rows, "GAP", "4");
+    ui_style_form(rows);
 
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Fornecedores/Parceiros"),
         rows,
-        IupHbox(btnSalvar, btnExcluir, btnAtualizar, NULL),
+        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
         IupSetAttributes(IupFrame(mat_forn), "TITLE=Lista de Fornecedores"),
         NULL
     );
-    IupSetAttribute(form, "MARGIN", "8x8");
+    ui_style_form(form);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNF", (char*)txtNF);
@@ -86,7 +104,7 @@ static Ihandle* fornecedor_view_create(void) {
 
     IupSetAttribute(btnExcluir, "txtId", (char*)txtId);
     IupSetAttribute(btnAtualizar, "MATRIX", (char*)mat_forn);
-    IupSetAttribute(txtId,"SIZE","60x"); IupSetAttribute(txtNF,"SIZE","200x"); IupSetAttribute(txtRS,"SIZE","220x"); IupSetAttribute(txtDoc,"SIZE","120x"); IupSetAttribute(txtEnd,"SIZE","260x"); IupSetAttribute(txtTel,"SIZE","120x"); IupSetAttribute(txtServ,"SIZE","160x");
+    /* tamanhos padronizados aplicados por ui_pair */
 
     IupSetAttribute(mat_forn,"txtId",(char*)txtId); IupSetAttribute(mat_forn,"txtNF",(char*)txtNF); IupSetAttribute(mat_forn,"txtRS",(char*)txtRS); IupSetAttribute(mat_forn,"txtDoc",(char*)txtDoc); IupSetAttribute(mat_forn,"txtEnd",(char*)txtEnd); IupSetAttribute(mat_forn,"txtTel",(char*)txtTel); IupSetAttribute(mat_forn,"txtServ",(char*)txtServ);
 
@@ -104,7 +122,7 @@ void fornecedor_view_mostrar(void) {
     if (!dlg_fornecedor) {
         dlg_fornecedor = IupDialog(fornecedor_view_create());
         IupSetAttribute(dlg_fornecedor, "TITLE", "Cadastro de Fornecedores");
-        IupSetAttribute(dlg_fornecedor, "SIZE", "760x440");
+        IupSetAttribute(dlg_fornecedor, "SIZE", "860x560");
     }
     IupShowXY(dlg_fornecedor, IUP_CENTER, IUP_CENTER);
 }

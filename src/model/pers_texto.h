@@ -33,5 +33,6 @@ int pers_texto_remover_operador(int id);
 
 int pers_texto_salvar_produtora(Produtora p);
 int pers_texto_obter_produtora(Produtora *out);
+int pers_texto_remover_produtora(void);
 
 #endif // PERS_TEXTO_H

@@ -6,6 +6,7 @@
 
 int produtora_salvar(Produtora p) { return pers_salvar_produtora(p); }
 int produtora_obter(Produtora *out) { return pers_obter_produtora(out); }
+int produtora_remover(void) { return pers_remover_produtora(); }
 
 int produtora_salvar_cb(Ihandle *self) {
     Ihandle *tNF = (Ihandle*)IupGetAttribute(self, "tNF");
@@ -19,7 +20,7 @@ int produtora_salvar_cb(Ihandle *self) {
     Ihandle *tTelResp = (Ihandle*)IupGetAttribute(self, "tTelResp");
     Ihandle *tMargem = (Ihandle*)IupGetAttribute(self, "tMargem");
 
-    Produtora p;
+    Produtora p; memset(&p, 0, sizeof(p));
     strcpy(p.nome_fantasia, IupGetAttribute(tNF, "VALUE"));
     strcpy(p.razao_social, IupGetAttribute(tRS, "VALUE"));
     strcpy(p.inscricao_estadual, IupGetAttribute(tIE, "VALUE"));
@@ -63,5 +64,35 @@ int produtora_carregar_cb(Ihandle *self) {
     sprintf(buf, "%.2f", p.margem_lucro_padrao);
     IupSetStrAttribute(tMargem, "VALUE", buf);
     IupMessage("Sucesso", "Dados da Produtora carregados.");
+    return IUP_DEFAULT;
+}
+
+int produtora_excluir_cb(Ihandle *self) {
+    Ihandle *tNF = (Ihandle*)IupGetAttribute(self, "tNF");
+    Ihandle *tRS = (Ihandle*)IupGetAttribute(self, "tRS");
+    Ihandle *tIE = (Ihandle*)IupGetAttribute(self, "tIE");
+    Ihandle *tCNPJ = (Ihandle*)IupGetAttribute(self, "tCNPJ");
+    Ihandle *tEnd = (Ihandle*)IupGetAttribute(self, "tEnd");
+    Ihandle *tTel = (Ihandle*)IupGetAttribute(self, "tTel");
+    Ihandle *tEmail = (Ihandle*)IupGetAttribute(self, "tEmail");
+    Ihandle *tResp = (Ihandle*)IupGetAttribute(self, "tResp");
+    Ihandle *tTelResp = (Ihandle*)IupGetAttribute(self, "tTelResp");
+    Ihandle *tMargem = (Ihandle*)IupGetAttribute(self, "tMargem");
+
+    if (produtora_remover()) {
+        IupSetAttribute(tNF, "VALUE", "");
+        IupSetAttribute(tRS, "VALUE", "");
+        IupSetAttribute(tIE, "VALUE", "");
+        IupSetAttribute(tCNPJ, "VALUE", "");
+        IupSetAttribute(tEnd, "VALUE", "");
+        IupSetAttribute(tTel, "VALUE", "");
+        IupSetAttribute(tEmail, "VALUE", "");
+        IupSetAttribute(tResp, "VALUE", "");
+        IupSetAttribute(tTelResp, "VALUE", "");
+        IupSetAttribute(tMargem, "VALUE", "");
+        IupMessage("Sucesso", "Dados da Produtora excluídos.");
+    } else {
+        IupMessage("Aviso", "Nenhum dado para excluir.");
+    }
     return IUP_DEFAULT;
 }

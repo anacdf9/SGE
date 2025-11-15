@@ -300,31 +300,49 @@ int pers_texto_remover_operador(int id) {
 
 /* ===== Produtora (única) ===== */
 int pers_texto_salvar_produtora(Produtora p) {
-    FILE *f=fopen(ARQ_PROD, "w"); if(!f) return 0;
-    fprintf(f, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%.2f\n",
-        p.nome_fantasia, p.razao_social, p.inscricao_estadual, p.cnpj, p.endereco,
-        p.telefone, p.email, p.responsavel, p.telefone_responsavel, p.margem_lucro_padrao);
-    fclose(f); return 1;
+    /* grava em uma única linha CSV, igual aos outros cadastros */
+    FILE *f = fopen(ARQ_PROD, "w");
+    if (!f) return 0;
+    fprintf(f, "%s;%s;%s;%s;%s;%s;%s;%s;%s;%.2f\n",
+            p.nome_fantasia,
+            p.razao_social,
+            p.inscricao_estadual,
+            p.cnpj,
+            p.endereco,
+            p.telefone,
+            p.email,
+            p.responsavel,
+            p.telefone_responsavel,
+            p.margem_lucro_padrao);
+    fclose(f);
+    return 1;
 }
 
 int pers_texto_obter_produtora(Produtora *out) {
-    if(!out) return 0; FILE *f=fopen(ARQ_PROD, "r"); if(!f) return 0; char buf[256];
-    if(!fgets(out->nome_fantasia, sizeof(out->nome_fantasia), f)) { fclose(f); return 0; }
-    if(!fgets(out->razao_social, sizeof(out->razao_social), f)) { fclose(f); return 0; }
-    if(!fgets(out->inscricao_estadual, sizeof(out->inscricao_estadual), f)) { fclose(f); return 0; }
-    if(!fgets(out->cnpj, sizeof(out->cnpj), f)) { fclose(f); return 0; }
-    if(!fgets(out->endereco, sizeof(out->endereco), f)) { fclose(f); return 0; }
-    if(!fgets(out->telefone, sizeof(out->telefone), f)) { fclose(f); return 0; }
-    if(!fgets(out->email, sizeof(out->email), f)) { fclose(f); return 0; }
-    if(!fgets(out->responsavel, sizeof(out->responsavel), f)) { fclose(f); return 0; }
-    if(!fgets(out->telefone_responsavel, sizeof(out->telefone_responsavel), f)) { fclose(f); return 0; }
-    if(!fgets(buf, sizeof(buf), f)) { fclose(f); return 0; }
-    out->margem_lucro_padrao = atof(buf);
-    /* remover \n das linhas */
-    #define STRIPNL(s) do{ size_t n=strlen(s); if(n && (s[n-1]=='\n' || s[n-1]=='\r')) s[n-1]='\0'; }while(0)
-    STRIPNL(out->nome_fantasia); STRIPNL(out->razao_social); STRIPNL(out->inscricao_estadual);
-    STRIPNL(out->cnpj); STRIPNL(out->endereco); STRIPNL(out->telefone); STRIPNL(out->email);
-    STRIPNL(out->responsavel); STRIPNL(out->telefone_responsavel);
-    #undef STRIPNL
-    fclose(f); return 1;
+    if (!out) return 0;
+    FILE *f = fopen(ARQ_PROD, "r");
+    if (!f) return 0;
+    Produtora p;
+    int ok = fscanf(f,
+                    "%119[^;];%119[^;];%39[^;];%29[^;];%149[^;];%29[^;];%79[^;];%79[^;];%29[^;];%lf\n",
+                    p.nome_fantasia,
+                    p.razao_social,
+                    p.inscricao_estadual,
+                    p.cnpj,
+                    p.endereco,
+                    p.telefone,
+                    p.email,
+                    p.responsavel,
+                    p.telefone_responsavel,
+                    &p.margem_lucro_padrao) == 10;
+    fclose(f);
+    if (!ok) return 0;
+    *out = p;
+    return 1;
+}
+
+int pers_texto_remover_produtora(void) {
+    /* remove o arquivo de produtora (cadastro único) */
+    int rc = remove(ARQ_PROD);
+    return rc == 0 ? 1 : 0;
 }

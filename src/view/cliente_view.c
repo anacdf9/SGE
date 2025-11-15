@@ -2,6 +2,8 @@
 #include <iupcontrols.h>
 #include "../controller/cliente_controller.h" // Inclui os callbacks (_cb)
 #include "cliente_view.h" // Inclui o próprio .h (boa prática)
+#include "ui_common.h"
+#include "validation.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -58,6 +60,12 @@ static int cliente_view_click_cb(Ihandle *mat, int lin, int col, char *status) {
 }
 
     static int cliente_salvar_wrap_cb(Ihandle *self) {
+        Ihandle *txtCpfCnpj = (Ihandle*)IupGetAttribute(self, "txtCpfCnpj");
+        Ihandle *txtTelefone = (Ihandle*)IupGetAttribute(self, "txtTelefone");
+        const char* sdoc = IupGetAttribute(txtCpfCnpj, "VALUE");
+        const char* stel = IupGetAttribute(txtTelefone, "VALUE");
+        if (!ui_valid_cpf_cnpj(sdoc)) { IupMessage("Dados inválidos", "CPF/CNPJ deve conter 11 ou 14 dígitos."); return IUP_DEFAULT; }
+        if (!ui_valid_phone(stel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
         cliente_salvar_cb(self);
         if (mat_cliente) cliente_view_recarregar_matriz(mat_cliente);
         return IUP_DEFAULT;
@@ -105,26 +113,37 @@ Ihandle* cliente_view_create(void) {
     IupSetAttribute(mat_cliente, "WIDTH7", "120");
 
     // Monta o formulário
+    /* Larguras por tipo de dado */
+    ui_set_width_px(txtId, UI_W_ID);
+    ui_set_width_px(txtCpfCnpj, UI_W_MED);
+    ui_set_width_px(txtNome, UI_W_XLONG);
+    ui_set_width_px(txtContato, UI_W_MED);
+    ui_set_width_px(txtEndereco, UI_W_XLONG);
+    ui_set_width_px(txtTelefone, UI_W_MED);
+    ui_set_width_px(txtEmail, UI_W_XLONG);
+    IupSetAttribute(txtCpfCnpj, "TIP", "Somente dígitos: CPF=11, CNPJ=14");
+    IupSetAttribute(txtTelefone, "TIP", "Somente dígitos: Tel=10-11");
+
     Ihandle *rows = IupVbox(
-        IupVbox(IupLabel("Código:"), txtId, NULL),
-        IupVbox(IupLabel("Nome/Razão Social:"), txtNome, NULL),
-        IupVbox(IupLabel("Endereço:"), txtEndereco, NULL),
-        IupVbox(IupLabel("CPF/CNPJ:"), txtCpfCnpj, NULL),
-        IupVbox(IupLabel("Telefone:"), txtTelefone, NULL),
-        IupVbox(IupLabel("E-mail:"), txtEmail, NULL),
-        IupVbox(IupLabel("Contato:"), txtContato, NULL),
+        ui_pair("Código:", txtId),
+        ui_pair("CPF/CNPJ:", txtCpfCnpj),
+        ui_pair("Nome/Razão Social:", txtNome),
+        ui_pair("Contato:", txtContato),
+        ui_pair("Endereço:", txtEndereco),
+        ui_pair("Telefone:", txtTelefone),
+        ui_pair("E-mail:", txtEmail),
         NULL
     );
-    IupSetAttribute(rows, "GAP", "4");
+    ui_style_form(rows);
 
     Ihandle *form_vbox = IupVbox(
         IupLabel("Cadastro de Cliente"),
         rows,
-        IupHbox(btnSalvar, btnExcluir, btnAtualizar, NULL),
+        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
         IupSetAttributes(IupFrame(mat_cliente), "TITLE=Lista de Clientes"),
         NULL
     );
-    IupSetAttribute(form_vbox, "MARGIN", "8x8");
+    ui_style_form(form_vbox);
     
     // Associa os handles dos campos de texto aos botões
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
@@ -138,13 +157,7 @@ Ihandle* cliente_view_create(void) {
     IupSetAttribute(btnExcluir, "txtId", (char*)txtId);
     IupSetAttribute(btnAtualizar, "MATRIX", (char*)mat_cliente);
     /* tamanhos melhores */
-    IupSetAttribute(txtId, "SIZE", "60x");
-    IupSetAttribute(txtNome, "SIZE", "200x");
-    IupSetAttribute(txtEndereco, "SIZE", "260x");
-    IupSetAttribute(txtCpfCnpj, "SIZE", "120x");
-    IupSetAttribute(txtTelefone, "SIZE", "120x");
-    IupSetAttribute(txtEmail, "SIZE", "220x");
-    IupSetAttribute(txtContato, "SIZE", "160x");
+    /* validação simples antes de salvar */
 
     /* vincula campos à matriz para carregar ao clicar */
     IupSetAttribute(mat_cliente, "txtId", (char*)txtId);

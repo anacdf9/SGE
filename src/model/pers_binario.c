@@ -130,3 +130,4 @@ int pers_binario_remover_operador(int id){ FILE *f=fopen(ARQ_OPER_BIN,"rb"); if(
 /* ===== Produtora (única) ===== */
 int pers_binario_salvar_produtora(Produtora p){ FILE *f=fopen(ARQ_PROD_BIN,"wb"); if(!f) return 0; fwrite(&p,sizeof(Produtora),1,f); fclose(f); return 1; }
 int pers_binario_obter_produtora(Produtora *out){ if(!out) return 0; FILE *f=fopen(ARQ_PROD_BIN,"rb"); if(!f) return 0; int ok=fread(out,sizeof(Produtora),1,f)==1; fclose(f); return ok; }
+int pers_binario_remover_produtora(void){ return remove(ARQ_PROD_BIN)==0 ? 1 : 0; }

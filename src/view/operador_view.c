@@ -1,6 +1,7 @@
 #include <iup.h>
 #include <iupcontrols.h>
 #include "../controller/operador_controller.h"
+#include "ui_common.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -38,23 +39,28 @@ static Ihandle* operador_view_create(void) {
     IupSetAttribute(mat_oper,"NUMCOL","4"); IupSetAttribute(mat_oper,"NUMLIN","1"); IupSetAttribute(mat_oper,"EXPAND","YES");
     IupSetAttribute(mat_oper,"WIDTH1","40"); IupSetAttribute(mat_oper,"WIDTH2","160"); IupSetAttribute(mat_oper,"WIDTH3","140"); IupSetAttribute(mat_oper,"WIDTH4","120");
 
+    ui_set_width_px(txtId, UI_W_ID);
+    ui_set_width_px(txtUser, UI_W_MED);
+    ui_set_width_px(txtNome, UI_W_LONG);
+    ui_set_width_px(txtSenha, UI_W_MED);
+
     Ihandle *rows = IupVbox(
-        IupVbox(IupLabel("Código:"), txtId, NULL),
-        IupVbox(IupLabel("Nome:"), txtNome, NULL),
-        IupVbox(IupLabel("Usuário:"), txtUser, NULL),
-        IupVbox(IupLabel("Senha:"), txtSenha, NULL),
+        ui_pair("Código:", txtId),
+        ui_pair("Usuário:", txtUser),
+        ui_pair("Nome:", txtNome),
+        ui_pair("Senha:", txtSenha),
         NULL
     );
-    IupSetAttribute(rows, "GAP", "4");
+    ui_style_form(rows);
 
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Operadores do Sistema"),
         rows,
-        IupHbox(btnSalvar, btnExcluir, btnAtualizar, NULL),
+        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
         IupSetAttributes(IupFrame(mat_oper), "TITLE=Lista de Operadores"),
         NULL
     );
-    IupSetAttribute(form, "MARGIN", "8x8");
+    ui_style_form(form);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNome", (char*)txtNome);
@@ -63,7 +69,7 @@ static Ihandle* operador_view_create(void) {
 
     IupSetAttribute(btnExcluir, "txtId", (char*)txtId);
     IupSetAttribute(btnAtualizar, "MATRIX", (char*)mat_oper);
-    IupSetAttribute(txtId,"SIZE","60x"); IupSetAttribute(txtNome,"SIZE","220x"); IupSetAttribute(txtUser,"SIZE","160x"); IupSetAttribute(txtSenha,"SIZE","160x");
+    /* tamanhos padronizados aplicados por ui_pair */
     IupSetAttribute(mat_oper,"txtId",(char*)txtId); IupSetAttribute(mat_oper,"txtNome",(char*)txtNome); IupSetAttribute(mat_oper,"txtUser",(char*)txtUser); IupSetAttribute(mat_oper,"txtSenha",(char*)txtSenha);
 
     IupSetCallback(btnSalvar, "ACTION", (Icallback)operador_salvar_wrap_cb);
@@ -80,7 +86,7 @@ void operador_view_mostrar(void) {
     if (!dlg_operador) {
         dlg_operador = IupDialog(operador_view_create());
         IupSetAttribute(dlg_operador, "TITLE", "Cadastro de Operadores");
-        IupSetAttribute(dlg_operador, "SIZE", "700x380");
+        IupSetAttribute(dlg_operador, "SIZE", "760x420");
     }
     IupShowXY(dlg_operador, IUP_CENTER, IUP_CENTER);
 }
