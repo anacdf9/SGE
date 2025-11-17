@@ -7,6 +7,7 @@
 #include "fornecedor.h"
 #include "operador.h"
 #include "produtora.h"
+#include "evento.h"
 
 void pers_texto_inicializar(void);
 void pers_texto_finalizar(void);
@@ -34,5 +35,10 @@ int pers_texto_remover_operador(int id);
 int pers_texto_salvar_produtora(Produtora p);
 int pers_texto_obter_produtora(Produtora *out);
 int pers_texto_remover_produtora(void);
+
+/* Evento */
+int pers_texto_salvar_evento(Evento e);
+int pers_texto_carregar_eventos(Evento *lista, int max);
+int pers_texto_remover_evento(int id);
 
 #endif // PERS_TEXTO_H

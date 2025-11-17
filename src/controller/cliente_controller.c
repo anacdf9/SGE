@@ -5,11 +5,20 @@
 #include "../model/pers.h"
 #include "cliente_controller.h"
 
-/* Salva/atualiza cliente */
+/* Gerador simples: próximo ID = max(id)+1 */
+static int cliente_next_id(void) {
+    Cliente lista[1024];
+    int n = pers_carregar_clientes(lista, 1024);
+    int maxid = 0;
+    for (int i = 0; i < n; i++) if (lista[i].id > maxid) maxid = lista[i].id;
+    return maxid + 1;
+}
+
+/* Salva/atualiza cliente com autogeracao de ID */
 int cliente_salvar(Cliente c) {
-    // Validação básica (ID não pode ser 0 ou negativo)
     if (c.id <= 0) {
-        return 0; // Falha
+        c.id = cliente_next_id();
+        if (c.id <= 0) c.id = 1;
     }
     return pers_salvar_cliente(c);
 }
@@ -42,11 +51,7 @@ int cliente_salvar_cb(Ihandle *self) {
 
     // 1. Pega o ID (Código)
     int id_cliente = atoi(IupGetAttribute(txtId, "VALUE"));
-    if (id_cliente <= 0) {
-        IupMessage("Erro", "O Código (ID) do cliente é inválido ou não foi preenchido.");
-        return IUP_DEFAULT;
-    }
-    c.id = id_cliente;
+    c.id = id_cliente; /* se <=0, será gerado em cliente_salvar */
 
     // 2. Pega os demais campos do formulário
     strcpy(c.nome, IupGetAttribute(txtNome, "VALUE"));
@@ -57,9 +62,10 @@ int cliente_salvar_cb(Ihandle *self) {
     strcpy(c.contato, IupGetAttribute(txtContato, "VALUE"));
 
     // 3. Manda salvar
-    if (cliente_salvar(c))
+    if (cliente_salvar(c)) {
+        IupSetfAttribute(txtId, "VALUE", "%d", c.id);
         IupMessage("Sucesso", "Cliente salvo com sucesso!");
-    else
+    } else
         IupMessage("Erro", "Falha ao salvar cliente. (Verifique se o Código é válido).");
 
     return IUP_DEFAULT;

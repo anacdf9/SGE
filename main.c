@@ -1,6 +1,6 @@
 #include <iup.h>
-#include <iupcontrols.h> // <-- ESSA LINHA QUE FALTAVA (ou não salvou)
-#include <stdlib.h>      // (Esse aqui era pro NULL)
+#include <iupcontrols.h> 
+#include <stdlib.h>  
 
 #include "src/view/cliente_view.h"
 #include "src/view/equipe_view.h"
@@ -8,6 +8,7 @@
 #include "src/view/fornecedor_view.h"
 #include "src/view/operador_view.h"
 #include "src/view/produtora_view.h"
+#include "src/view/evento_view.h"
 #include "src/config.h"
 #include "src/model/pers.h"
 
@@ -42,6 +43,11 @@ int btn_abrir_produtora_cb(void) {
     return IUP_DEFAULT;
 }
 
+int btn_abrir_eventos_cb(void) {
+    evento_view_mostrar();
+    return IUP_DEFAULT;
+}
+
 /* Callback para o menu "Sair" */
 int btn_sair_cb(void) {
     return IUP_CLOSE; // Comando do IUP para fechar o MainLoop
@@ -68,8 +74,8 @@ int main(int argc, char **argv) {
             ,NULL
         )),
         IupSubmenu("Eventos", IupMenu(
-            IupItem("Novo Orçamento", NULL),
-            IupItem("Gerenciar Eventos", NULL),
+            IupItem("Novo Orçamento", "btn_abrir_eventos_cb"),
+            IupItem("Gerenciar Eventos", "btn_abrir_eventos_cb"),
             NULL
         )),
         NULL
@@ -104,6 +110,7 @@ int main(int argc, char **argv) {
     IupSetFunction("btn_abrir_fornecedores_cb", (Icallback)btn_abrir_fornecedores_cb);
     IupSetFunction("btn_abrir_operadores_cb", (Icallback)btn_abrir_operadores_cb);
     IupSetFunction("btn_abrir_produtora_cb", (Icallback)btn_abrir_produtora_cb);
+    IupSetFunction("btn_abrir_eventos_cb", (Icallback)btn_abrir_eventos_cb);
     IupSetFunction("btn_sair_cb", (Icallback)btn_sair_cb);
 
     IupShowXY(dlg_main, IUP_CENTER, IUP_CENTER);

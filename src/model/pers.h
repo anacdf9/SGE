@@ -7,6 +7,7 @@
 #include "fornecedor.h"
 #include "operador.h"
 #include "produtora.h"
+#include "evento.h"
 #include "config.h"
 #include <stdlib.h>   
 
@@ -43,5 +44,10 @@ int pers_remover_operador(int id);
 int pers_salvar_produtora(Produtora p);
 int pers_obter_produtora(Produtora *out);
 int pers_remover_produtora(void);
+
+/* Evento (orçamentos e gestão) */
+int pers_salvar_evento(Evento e);
+int pers_carregar_eventos(Evento *lista, int max);
+int pers_remover_evento(int id);
 
 #endif // PERS_H

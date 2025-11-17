@@ -3,7 +3,9 @@
 #include "../model/pers.h"
 #include "fornecedor_controller.h"
 
-int fornecedor_salvar(Fornecedor f) { if (f.id <= 0) return 0; return pers_salvar_fornecedor(f); }
+static int fornecedor_next_id(void){ Fornecedor v[1024]; int n=fornecedor_listar(v,1024); int m=0; for(int i=0;i<n;i++) if(v[i].id>m) m=v[i].id; return m+1; }
+
+int fornecedor_salvar(Fornecedor f) { if (f.id <= 0) { f.id = fornecedor_next_id(); if(f.id<=0) f.id=1; } return pers_salvar_fornecedor(f); }
 int fornecedor_excluir(int id) { return pers_remover_fornecedor(id); }
 int fornecedor_listar(Fornecedor *buffer, int max) { return pers_carregar_fornecedores(buffer, max); }
 
@@ -17,8 +19,7 @@ int fornecedor_salvar_cb(Ihandle *self) {
     Ihandle *txtServ = (Ihandle*)IupGetAttribute(self, "txtServ");
 
     Fornecedor f;
-    f.id = atoi(IupGetAttribute(txtId, "VALUE"));
-    if (f.id <= 0) { IupMessage("Erro", "ID inválido."); return IUP_DEFAULT; }
+    f.id = atoi(IupGetAttribute(txtId, "VALUE")); /* se <=0, será gerado em fornecedor_salvar */
     strcpy(f.nome_fantasia, IupGetAttribute(txtNF, "VALUE"));
     strcpy(f.razao_social, IupGetAttribute(txtRS, "VALUE"));
     strcpy(f.cnpj_cpf, IupGetAttribute(txtDoc, "VALUE"));
@@ -26,7 +27,7 @@ int fornecedor_salvar_cb(Ihandle *self) {
     strcpy(f.telefone, IupGetAttribute(txtTel, "VALUE"));
     strcpy(f.tipo_servico, IupGetAttribute(txtServ, "VALUE"));
 
-    if (fornecedor_salvar(f)) IupMessage("Sucesso", "Fornecedor salvo."); else IupMessage("Erro", "Falha ao salvar.");
+    if (fornecedor_salvar(f)) { IupSetfAttribute(txtId,"VALUE","%d", f.id); IupMessage("Sucesso", "Fornecedor salvo."); } else IupMessage("Erro", "Falha ao salvar.");
     return IUP_DEFAULT;
 }
 

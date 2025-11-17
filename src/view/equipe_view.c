@@ -15,11 +15,11 @@ static void equipe_recarregar_matriz(Ihandle *mat){
     IupSetAttribute(mat,"NUMCOL","5"); IupSetAttribute(mat,"NUMLIN",k);
     IupSetAttribute(mat,"0:1","ID"); IupSetAttribute(mat,"0:2","Nome"); IupSetAttribute(mat,"0:3","CPF"); IupSetAttribute(mat,"0:4","Função"); IupSetAttribute(mat,"0:5","Valor");
     for(int i=1;i<=n;i++){ char idb[32]; sprintf(idb,"%d",buf[i-1].id); char vbuf[32]; sprintf(vbuf,"%.2f",buf[i-1].valor_hora);
-        IupSetAttributeId2(mat,"",i,1,idb);
-        IupSetAttributeId2(mat,"",i,2,buf[i-1].nome);
-        IupSetAttributeId2(mat,"",i,3,buf[i-1].cpf);
-        IupSetAttributeId2(mat,"",i,4,buf[i-1].funcao);
-        IupSetAttributeId2(mat,"",i,5,vbuf);
+        IupSetStrAttributeId2(mat,"",i,1,idb);
+        IupSetStrAttributeId2(mat,"",i,2,buf[i-1].nome);
+        IupSetStrAttributeId2(mat,"",i,3,buf[i-1].cpf);
+        IupSetStrAttributeId2(mat,"",i,4,buf[i-1].funcao);
+        IupSetStrAttributeId2(mat,"",i,5,vbuf);
     }
 }
 
@@ -53,13 +53,31 @@ static int equipe_excluir_wrap_cb(Ihandle *self){
     return IUP_DEFAULT;
 }
 
+static int equipe_novo_cb(Ihandle *self){
+    Ihandle *txtId=(Ihandle*)IupGetAttribute(self,"txtId");
+    Ihandle *txtNome=(Ihandle*)IupGetAttribute(self,"txtNome");
+    Ihandle *txtCpf=(Ihandle*)IupGetAttribute(self,"txtCpf");
+    Ihandle *txtFunc=(Ihandle*)IupGetAttribute(self,"txtFunc");
+    Ihandle *txtValor=(Ihandle*)IupGetAttribute(self,"txtValor");
+    IupSetAttribute(txtId,"VALUE","");
+    IupSetAttribute(txtNome,"VALUE","");
+    IupSetAttribute(txtCpf,"VALUE","");
+    IupSetAttribute(txtFunc,"VALUE","");
+    IupSetAttribute(txtValor,"VALUE","");
+    IupSetFocus(txtNome);
+    return IUP_DEFAULT;
+}
+
 static Ihandle* equipe_view_create(void) {
     Ihandle *txtId = IupText(NULL);
+    IupSetAttribute(txtId, "READONLY", "YES");
+    IupSetAttribute(txtId, "TIP", "Gerado automaticamente");
     Ihandle *txtNome = IupText(NULL);
     Ihandle *txtCpf = IupText(NULL);
     Ihandle *txtFunc = IupText(NULL);
     Ihandle *txtValor = IupText(NULL);
 
+    Ihandle *btnNovo = IupButton("Novo", NULL);
     Ihandle *btnSalvar = IupButton("Salvar", NULL);
     Ihandle *btnExcluir = IupButton("Excluir", NULL);
     Ihandle *btnAtualizar = IupButton("Atualizar Lista", NULL);
@@ -85,14 +103,21 @@ static Ihandle* equipe_view_create(void) {
     );
     ui_style_form(rows);
 
+    Ihandle *btn_row = IupHbox(IupFill(), btnNovo, btnSalvar, btnExcluir, btnAtualizar, IupFill(), NULL);
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Equipe Interna"),
         rows,
-        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
+        btn_row,
         IupSetAttributes(IupFrame(mat_equipe), "TITLE=Lista de Equipe"),
         NULL
     );
     ui_style_form(form);
+
+    IupSetAttribute(btnNovo, "txtId", (char*)txtId);
+    IupSetAttribute(btnNovo, "txtNome", (char*)txtNome);
+    IupSetAttribute(btnNovo, "txtCpf", (char*)txtCpf);
+    IupSetAttribute(btnNovo, "txtFunc", (char*)txtFunc);
+    IupSetAttribute(btnNovo, "txtValor", (char*)txtValor);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNome", (char*)txtNome);
@@ -106,6 +131,7 @@ static Ihandle* equipe_view_create(void) {
 
     IupSetAttribute(mat_equipe,"txtId",(char*)txtId); IupSetAttribute(mat_equipe,"txtNome",(char*)txtNome); IupSetAttribute(mat_equipe,"txtCpf",(char*)txtCpf); IupSetAttribute(mat_equipe,"txtFunc",(char*)txtFunc); IupSetAttribute(mat_equipe,"txtValor",(char*)txtValor);
 
+    IupSetCallback(btnNovo, "ACTION", (Icallback)equipe_novo_cb);
     IupSetCallback(btnSalvar, "ACTION", (Icallback)equipe_salvar_wrap_cb);
     IupSetCallback(btnExcluir, "ACTION", (Icallback)equipe_excluir_wrap_cb);
     IupSetCallback(btnAtualizar, "ACTION", (Icallback)equipe_atualizar_cb);

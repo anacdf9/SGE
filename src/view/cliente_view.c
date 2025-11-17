@@ -29,13 +29,13 @@ static void cliente_view_recarregar_matriz(Ihandle *mat) {
     for (int i = 1; i <= n; i++) {
         char buf[64];
         sprintf(buf, "%d", buffer[i-1].id);
-        IupSetAttributeId2(mat, "", i, 1, buf);
-        IupSetAttributeId2(mat, "", i, 2, buffer[i-1].nome);
-        IupSetAttributeId2(mat, "", i, 3, buffer[i-1].endereco);
-        IupSetAttributeId2(mat, "", i, 4, buffer[i-1].cpf_cnpj);
-        IupSetAttributeId2(mat, "", i, 5, buffer[i-1].telefone);
-        IupSetAttributeId2(mat, "", i, 6, buffer[i-1].email);
-        IupSetAttributeId2(mat, "", i, 7, buffer[i-1].contato);
+        IupSetStrAttributeId2(mat, "", i, 1, buf);
+        IupSetStrAttributeId2(mat, "", i, 2, buffer[i-1].nome);
+        IupSetStrAttributeId2(mat, "", i, 3, buffer[i-1].endereco);
+        IupSetStrAttributeId2(mat, "", i, 4, buffer[i-1].cpf_cnpj);
+        IupSetStrAttributeId2(mat, "", i, 5, buffer[i-1].telefone);
+        IupSetStrAttributeId2(mat, "", i, 6, buffer[i-1].email);
+        IupSetStrAttributeId2(mat, "", i, 7, buffer[i-1].contato);
     }
 }
 
@@ -83,12 +83,33 @@ static int cliente_atualizar_cb(Ihandle *self) {
     return IUP_DEFAULT;
 }
 
+static int cliente_novo_cb(Ihandle *self) {
+    Ihandle *txtId = (Ihandle*)IupGetAttribute(self, "txtId");
+    Ihandle *txtNome = (Ihandle*)IupGetAttribute(self, "txtNome");
+    Ihandle *txtEndereco = (Ihandle*)IupGetAttribute(self, "txtEndereco");
+    Ihandle *txtCpfCnpj = (Ihandle*)IupGetAttribute(self, "txtCpfCnpj");
+    Ihandle *txtTelefone = (Ihandle*)IupGetAttribute(self, "txtTelefone");
+    Ihandle *txtEmail = (Ihandle*)IupGetAttribute(self, "txtEmail");
+    Ihandle *txtContato = (Ihandle*)IupGetAttribute(self, "txtContato");
+    IupSetAttribute(txtId, "VALUE", "");
+    IupSetAttribute(txtNome, "VALUE", "");
+    IupSetAttribute(txtEndereco, "VALUE", "");
+    IupSetAttribute(txtCpfCnpj, "VALUE", "");
+    IupSetAttribute(txtTelefone, "VALUE", "");
+    IupSetAttribute(txtEmail, "VALUE", "");
+    IupSetAttribute(txtContato, "VALUE", "");
+    IupSetFocus(txtNome);
+    return IUP_DEFAULT;
+}
+
 /*
  * Função que cria a tela de cadastro de cliente
  * (Essa função é interna, só a 'mostrar' chama)
  */
 Ihandle* cliente_view_create(void) {
     Ihandle *txtId = IupText(NULL);
+    IupSetAttribute(txtId, "READONLY", "YES");
+    IupSetAttribute(txtId, "TIP", "Gerado automaticamente");
     Ihandle *txtNome = IupText(NULL);
     Ihandle *txtEndereco = IupText(NULL);
     Ihandle *txtCpfCnpj = IupText(NULL);
@@ -96,6 +117,7 @@ Ihandle* cliente_view_create(void) {
     Ihandle *txtEmail = IupText(NULL);
     Ihandle *txtContato = IupText(NULL);
 
+    Ihandle *btnNovo = IupButton("Novo", NULL);
     Ihandle *btnSalvar = IupButton("Salvar", NULL);
     Ihandle *btnExcluir = IupButton("Excluir", NULL);
     Ihandle *btnAtualizar = IupButton("Atualizar Lista", NULL);
@@ -136,16 +158,25 @@ Ihandle* cliente_view_create(void) {
     );
     ui_style_form(rows);
 
+    Ihandle *btn_row = IupHbox(IupFill(), btnNovo, btnSalvar, btnExcluir, btnAtualizar, IupFill(), NULL);
     Ihandle *form_vbox = IupVbox(
         IupLabel("Cadastro de Cliente"),
         rows,
-        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
+        btn_row,
         IupSetAttributes(IupFrame(mat_cliente), "TITLE=Lista de Clientes"),
         NULL
     );
     ui_style_form(form_vbox);
     
     // Associa os handles dos campos de texto aos botões
+    IupSetAttribute(btnNovo, "txtId", (char*)txtId);
+    IupSetAttribute(btnNovo, "txtNome", (char*)txtNome);
+    IupSetAttribute(btnNovo, "txtEndereco", (char*)txtEndereco);
+    IupSetAttribute(btnNovo, "txtCpfCnpj", (char*)txtCpfCnpj);
+    IupSetAttribute(btnNovo, "txtTelefone", (char*)txtTelefone);
+    IupSetAttribute(btnNovo, "txtEmail", (char*)txtEmail);
+    IupSetAttribute(btnNovo, "txtContato", (char*)txtContato);
+
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNome", (char*)txtNome);
     IupSetAttribute(btnSalvar, "txtEndereco", (char*)txtEndereco);
@@ -169,6 +200,7 @@ Ihandle* cliente_view_create(void) {
     IupSetAttribute(mat_cliente, "txtContato", (char*)txtContato);
 
     // Define os callbacks (usando os nomes com _cb)
+    IupSetCallback(btnNovo, "ACTION", (Icallback)cliente_novo_cb);
     IupSetCallback(btnSalvar, "ACTION", (Icallback)cliente_salvar_wrap_cb);
     IupSetCallback(btnExcluir, "ACTION", (Icallback)cliente_excluir_wrap_cb);
     IupSetCallback(btnAtualizar, "ACTION", (Icallback)cliente_atualizar_cb);

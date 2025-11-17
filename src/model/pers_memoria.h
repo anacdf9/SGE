@@ -7,6 +7,7 @@
 #include "fornecedor.h"
 #include "operador.h"
 #include "produtora.h"
+#include "evento.h"
 
 void pers_memoria_inicializar(void);
 void pers_memoria_finalizar(void);
@@ -39,5 +40,10 @@ int pers_memoria_remover_operador(int id);
 int pers_memoria_salvar_produtora(Produtora p);
 int pers_memoria_obter_produtora(Produtora *out);
 int pers_memoria_remover_produtora(void);
+
+/* Evento */
+int pers_memoria_salvar_evento(Evento e);
+int pers_memoria_carregar_eventos(Evento *lista, int max);
+int pers_memoria_remover_evento(int id);
 
 #endif // PERS_MEMORIA_H

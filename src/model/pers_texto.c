@@ -9,6 +9,7 @@ static const char *ARQ_EQUIPES  = "equipes.txt";
 static const char *ARQ_FORNEC   = "fornecedores.txt";
 static const char *ARQ_OPER     = "operadores.txt";
 static const char *ARQ_PROD     = "produtora.txt";
+static const char *ARQ_EVENTOS  = "eventos.txt";
 
 /*
 // ESSA FUNÇÃO NÃO ESTAVA SENDO USADA, TAVA DANDO WARNING. COMENTEI ELA.
@@ -165,13 +166,20 @@ int pers_texto_salvar_recurso(Recurso r) {
 }
 
 int pers_texto_carregar_recursos(Recurso *lista, int max) {
-    FILE *f = fopen(ARQ_RECURSOS, "r"); if(!f) return 0; int total=0; Recurso temp;
+    FILE *f = fopen(ARQ_RECURSOS, "r");
+    if (!f) return 0;
+    int total = 0; Recurso temp;
     while (fscanf(f, "%d;%119[^;];%59[^;];%d;%lf;%lf\n",
                   &temp.id, temp.descricao, temp.categoria, &temp.quantidade,
                   &temp.preco_custo, &temp.valor_locacao) == 6) {
-        if (lista && total<max) lista[total]=temp; total++;
+        if (lista && total < max) {
+            lista[total] = temp;
+        }
+        total++;
     }
-    fclose(f); if (lista) return (total<max)?total:max; return total;
+    fclose(f);
+    if (lista) return (total < max) ? total : max;
+    return total;
 }
 
 int pers_texto_remover_recurso(int id) {
@@ -207,11 +215,19 @@ int pers_texto_salvar_equipe(Equipe e) {
 }
 
 int pers_texto_carregar_equipes(Equipe *lista, int max) {
-    FILE *f=fopen(ARQ_EQUIPES, "r"); if(!f) return 0; int total=0; Equipe temp;
-    while(fscanf(f, "%d;%99[^;];%19[^;];%59[^;];%lf\n",
-                 &temp.id, temp.nome, temp.cpf, temp.funcao, &temp.valor_hora)==5){
-        if(lista && total<max) lista[total]=temp; total++; }
-    fclose(f); if(lista) return (total<max)?total:max; return total;
+    FILE *f = fopen(ARQ_EQUIPES, "r");
+    if (!f) return 0;
+    int total = 0; Equipe temp;
+    while (fscanf(f, "%d;%99[^;];%19[^;];%59[^;];%lf\n",
+                  &temp.id, temp.nome, temp.cpf, temp.funcao, &temp.valor_hora) == 5) {
+        if (lista && total < max) {
+            lista[total] = temp;
+        }
+        total++;
+    }
+    fclose(f);
+    if (lista) return (total < max) ? total : max;
+    return total;
 }
 
 int pers_texto_remover_equipe(int id) {
@@ -345,4 +361,139 @@ int pers_texto_remover_produtora(void) {
     /* remove o arquivo de produtora (cadastro único) */
     int rc = remove(ARQ_PROD);
     return rc == 0 ? 1 : 0;
+}
+
+/* ===== Evento ===== */
+int pers_texto_salvar_evento(Evento e) {
+    FILE *f = fopen(ARQ_EVENTOS, "r");
+    Evento *lista = NULL, temp; int total = 0;
+    if (f) {
+        while (fscanf(f, "%d;%d;%d;%d;%d;%lf;%d;%lf;%10[^;];%10[^;];%119[^;];%d;%lf;%lf\n",
+                      &temp.id,
+                      &temp.cliente_id,
+                      &temp.recurso_id,
+                      &temp.recurso_qtd,
+                      &temp.equipe_id,
+                      &temp.equipe_horas,
+                      &temp.fornecedor_id,
+                      &temp.fornecedor_valor,
+                      temp.data_inicio,
+                      temp.data_fim,
+                      temp.local,
+                      (int*)&temp.status,
+                      &temp.total_estimado,
+                      &temp.total_final) == 14) {
+            lista = realloc(lista, sizeof(Evento) * (total + 1));
+            if (!lista) { fclose(f); return 0; }
+            lista[total++] = temp;
+        }
+        fclose(f);
+    }
+    int found = 0;
+    for (int i = 0; i < total; i++) {
+        if (lista[i].id == e.id) { lista[i] = e; found = 1; break; }
+    }
+    if (!found) {
+        lista = realloc(lista, sizeof(Evento) * (total + 1));
+        if (!lista) return 0;
+        lista[total++] = e;
+    }
+    f = fopen(ARQ_EVENTOS, "w"); if (!f) { free(lista); return 0; }
+    for (int i = 0; i < total; i++) {
+        fprintf(f, "%d;%d;%d;%d;%d;%.2f;%d;%.2f;%s;%s;%s;%d;%.2f;%.2f\n",
+                lista[i].id,
+                lista[i].cliente_id,
+                lista[i].recurso_id,
+                lista[i].recurso_qtd,
+                lista[i].equipe_id,
+                lista[i].equipe_horas,
+                lista[i].fornecedor_id,
+                lista[i].fornecedor_valor,
+                lista[i].data_inicio,
+                lista[i].data_fim,
+                lista[i].local,
+                (int)lista[i].status,
+                lista[i].total_estimado,
+                lista[i].total_final);
+    }
+    fclose(f); free(lista); return 1;
+}
+
+int pers_texto_carregar_eventos(Evento *lista, int max) {
+    FILE *f = fopen(ARQ_EVENTOS, "r");
+    if (!f) return 0;
+    int total = 0; Evento temp;
+    while (fscanf(f, "%d;%d;%d;%d;%d;%lf;%d;%lf;%10[^;];%10[^;];%119[^;];%d;%lf;%lf\n",
+                  &temp.id,
+                  &temp.cliente_id,
+                  &temp.recurso_id,
+                  &temp.recurso_qtd,
+                  &temp.equipe_id,
+                  &temp.equipe_horas,
+                  &temp.fornecedor_id,
+                  &temp.fornecedor_valor,
+                  temp.data_inicio,
+                  temp.data_fim,
+                  temp.local,
+                  (int*)&temp.status,
+                  &temp.total_estimado,
+                  &temp.total_final) == 14) {
+        if (lista && total < max)
+            lista[total] = temp;
+        total++;
+    }
+    fclose(f);
+    if (lista)
+        return (total < max) ? total : max;
+    return total;
+}
+
+int pers_texto_remover_evento(int id) {
+    FILE *f = fopen(ARQ_EVENTOS, "r"); if (!f) return 0; Evento *lista = NULL, temp; int total = 0;
+    while (fscanf(f, "%d;%d;%d;%d;%d;%lf;%d;%lf;%10[^;];%10[^;];%119[^;];%d;%lf;%lf\n",
+                  &temp.id,
+                  &temp.cliente_id,
+                  &temp.recurso_id,
+                  &temp.recurso_qtd,
+                  &temp.equipe_id,
+                  &temp.equipe_horas,
+                  &temp.fornecedor_id,
+                  &temp.fornecedor_valor,
+                  temp.data_inicio,
+                  temp.data_fim,
+                  temp.local,
+                  (int*)&temp.status,
+                  &temp.total_estimado,
+                  &temp.total_final) == 14) {
+        lista = realloc(lista, sizeof(Evento) * (total + 1)); if (!lista) { fclose(f); return 0; }
+        lista[total++] = temp;
+    }
+    fclose(f);
+    int found = 0;
+    for (int i = 0; i < total; i++) {
+        if (lista[i].id == id) {
+            for (int j = i; j < total - 1; j++) lista[j] = lista[j + 1];
+            total--; found = 1; break;
+        }
+    }
+    if (!found) { free(lista); return 0; }
+    f = fopen(ARQ_EVENTOS, "w"); if (!f) { free(lista); return 0; }
+    for (int i = 0; i < total; i++) {
+        fprintf(f, "%d;%d;%d;%d;%d;%.2f;%d;%.2f;%s;%s;%s;%d;%.2f;%.2f\n",
+                lista[i].id,
+                lista[i].cliente_id,
+                lista[i].recurso_id,
+                lista[i].recurso_qtd,
+                lista[i].equipe_id,
+                lista[i].equipe_horas,
+                lista[i].fornecedor_id,
+                lista[i].fornecedor_valor,
+                lista[i].data_inicio,
+                lista[i].data_fim,
+                lista[i].local,
+                (int)lista[i].status,
+                lista[i].total_estimado,
+                lista[i].total_final);
+    }
+    fclose(f); free(lista); return 1;
 }

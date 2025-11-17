@@ -22,6 +22,10 @@ static int total_fornecedores_mem = 0;
 static Operador operadores_mem[MEM_MAX_OPER];
 static int total_operadores_mem = 0;
 
+#define MEM_MAX_EVENTOS 200
+static Evento eventos_mem[MEM_MAX_EVENTOS];
+static int total_eventos_mem = 0;
+
 static Produtora produtora_mem; /* cadastro único */
 static int produtora_definida = 0;
 
@@ -32,6 +36,7 @@ void pers_memoria_inicializar(void) {
     total_fornecedores_mem = 0;
     total_operadores_mem = 0;
     produtora_definida = 0;
+    total_eventos_mem = 0;
 }
 
 void pers_memoria_finalizar(void) {
@@ -42,6 +47,7 @@ void pers_memoria_finalizar(void) {
     total_fornecedores_mem = 0;
     total_operadores_mem = 0;
     produtora_definida = 0;
+    total_eventos_mem = 0;
 }
 
 int pers_memoria_salvar_cliente(Cliente c) {
@@ -193,4 +199,29 @@ int pers_memoria_remover_produtora(void) {
     produtora_definida = 0;
     memset(&produtora_mem, 0, sizeof(Produtora));
     return 1;
+}
+
+/* ===== Evento ===== */
+int pers_memoria_salvar_evento(Evento e) {
+    for (int i = 0; i < total_eventos_mem; i++) {
+        if (eventos_mem[i].id == e.id) { eventos_mem[i] = e; return 1; }
+    }
+    if (e.id <= 0 || total_eventos_mem >= MEM_MAX_EVENTOS) return 0;
+    eventos_mem[total_eventos_mem++] = e; return 1;
+}
+
+int pers_memoria_carregar_eventos(Evento *lista, int max) {
+    int n = (total_eventos_mem < max) ? total_eventos_mem : max;
+    for (int i = 0; i < n; i++) lista[i] = eventos_mem[i];
+    return n;
+}
+
+int pers_memoria_remover_evento(int id) {
+    for (int i = 0; i < total_eventos_mem; i++) {
+        if (eventos_mem[i].id == id) {
+            for (int j = i; j < total_eventos_mem - 1; j++) eventos_mem[j] = eventos_mem[j + 1];
+            total_eventos_mem--; return 1;
+        }
+    }
+    return 0;
 }

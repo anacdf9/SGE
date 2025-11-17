@@ -5,6 +5,7 @@
 #include "pers_memoria.h"
 #include "pers_texto.h"
 #include "pers_binario.h"
+#include "evento.h"
 
 static TipoPersistencia tipo_atual = TIPO_PERSISTENCIA;
 
@@ -158,5 +159,27 @@ int pers_remover_produtora(void) {
     if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_produtora();
     if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_produtora();
     if (tipo_atual == PERS_BINARIO) return pers_binario_remover_produtora();
+    return 0;
+}
+
+/* ===== Evento ===== */
+int pers_salvar_evento(Evento e) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_evento(e);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_evento(e);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_salvar_evento(e);
+    return 0;
+}
+
+int pers_carregar_eventos(Evento *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_eventos(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_eventos(lista, max);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_carregar_eventos(lista, max);
+    return 0;
+}
+
+int pers_remover_evento(int id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_evento(id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_evento(id);
+    if (tipo_atual == PERS_BINARIO) return pers_binario_remover_evento(id);
     return 0;
 }

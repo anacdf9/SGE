@@ -7,6 +7,7 @@
 #include "fornecedor.h"
 #include "operador.h"
 #include "produtora.h"
+#include "evento.h"
 
 void pers_binario_inicializar(void);
 void pers_binario_finalizar(void);
@@ -34,5 +35,10 @@ int pers_binario_remover_operador(int id);
 int pers_binario_salvar_produtora(Produtora p);
 int pers_binario_obter_produtora(Produtora *out);
 int pers_binario_remover_produtora(void);
+
+/* Evento */
+int pers_binario_salvar_evento(Evento e);
+int pers_binario_carregar_eventos(Evento *lista, int max);
+int pers_binario_remover_evento(int id);
 
 #endif // PERS_BINARIO_H

@@ -14,12 +14,12 @@ static void recurso_recarregar_matriz(Ihandle *mat){
     IupSetAttribute(mat, "0:1", "ID"); IupSetAttribute(mat, "0:2", "Descrição"); IupSetAttribute(mat, "0:3", "Categoria");
     IupSetAttribute(mat, "0:4", "Qtd"); IupSetAttribute(mat, "0:5", "Custo"); IupSetAttribute(mat, "0:6", "Locação");
     for(int i=1;i<=n;i++){ char idbuf[32]; sprintf(idbuf,"%d",buffer[i-1].id); char qbuf[32]; sprintf(qbuf,"%d",buffer[i-1].quantidade); char cbuf[32]; sprintf(cbuf,"%.2f",buffer[i-1].preco_custo); char lbuf[32]; sprintf(lbuf,"%.2f",buffer[i-1].valor_locacao);
-        IupSetAttributeId2(mat,"",i,1,idbuf);
-        IupSetAttributeId2(mat,"",i,2,buffer[i-1].descricao);
-        IupSetAttributeId2(mat,"",i,3,buffer[i-1].categoria);
-        IupSetAttributeId2(mat,"",i,4,qbuf);
-        IupSetAttributeId2(mat,"",i,5,cbuf);
-        IupSetAttributeId2(mat,"",i,6,lbuf);
+        IupSetStrAttributeId2(mat,"",i,1,idbuf);
+        IupSetStrAttributeId2(mat,"",i,2,buffer[i-1].descricao);
+        IupSetStrAttributeId2(mat,"",i,3,buffer[i-1].categoria);
+        IupSetStrAttributeId2(mat,"",i,4,qbuf);
+        IupSetStrAttributeId2(mat,"",i,5,cbuf);
+        IupSetStrAttributeId2(mat,"",i,6,lbuf);
     }
 }
 
@@ -48,14 +48,34 @@ static int recurso_excluir_wrap_cb(Ihandle *self){
     return IUP_DEFAULT;
 }
 
+static int recurso_novo_cb(Ihandle *self){
+    Ihandle *txtId=(Ihandle*)IupGetAttribute(self,"txtId");
+    Ihandle *txtDesc=(Ihandle*)IupGetAttribute(self,"txtDesc");
+    Ihandle *txtCat=(Ihandle*)IupGetAttribute(self,"txtCat");
+    Ihandle *txtQtd=(Ihandle*)IupGetAttribute(self,"txtQtd");
+    Ihandle *txtCusto=(Ihandle*)IupGetAttribute(self,"txtCusto");
+    Ihandle *txtLoc=(Ihandle*)IupGetAttribute(self,"txtLoc");
+    IupSetAttribute(txtId,"VALUE","");
+    IupSetAttribute(txtDesc,"VALUE","");
+    IupSetAttribute(txtCat,"VALUE","");
+    IupSetAttribute(txtQtd,"VALUE","");
+    IupSetAttribute(txtCusto,"VALUE","");
+    IupSetAttribute(txtLoc,"VALUE","");
+    IupSetFocus(txtDesc);
+    return IUP_DEFAULT;
+}
+
 static Ihandle* recurso_view_create(void) {
     Ihandle *txtId = IupText(NULL);
+    IupSetAttribute(txtId, "READONLY", "YES");
+    IupSetAttribute(txtId, "TIP", "Gerado automaticamente");
     Ihandle *txtDesc = IupText(NULL);
     Ihandle *txtCat = IupText(NULL);
     Ihandle *txtQtd = IupText(NULL);
     Ihandle *txtCusto = IupText(NULL);
     Ihandle *txtLoc = IupText(NULL);
 
+    Ihandle *btnNovo = IupButton("Novo", NULL);
     Ihandle *btnSalvar = IupButton("Salvar", NULL);
     Ihandle *btnExcluir = IupButton("Excluir", NULL);
     Ihandle *btnAtualizar = IupButton("Atualizar Lista", NULL);
@@ -83,14 +103,22 @@ static Ihandle* recurso_view_create(void) {
     );
     ui_style_form(rows);
 
+    Ihandle *btn_row = IupHbox(IupFill(), btnNovo, btnSalvar, btnExcluir, btnAtualizar, IupFill(), NULL);
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Recursos/Equipamentos"),
         rows,
-        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
+        btn_row,
         IupSetAttributes(IupFrame(mat_recurso), "TITLE=Lista de Recursos"),
         NULL
     );
     ui_style_form(form);
+
+    IupSetAttribute(btnNovo, "txtId", (char*)txtId);
+    IupSetAttribute(btnNovo, "txtDesc", (char*)txtDesc);
+    IupSetAttribute(btnNovo, "txtCat", (char*)txtCat);
+    IupSetAttribute(btnNovo, "txtQtd", (char*)txtQtd);
+    IupSetAttribute(btnNovo, "txtCusto", (char*)txtCusto);
+    IupSetAttribute(btnNovo, "txtLoc", (char*)txtLoc);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtDesc", (char*)txtDesc);
@@ -107,6 +135,7 @@ static Ihandle* recurso_view_create(void) {
     IupSetAttribute(mat_recurso,"txtCat",(char*)txtCat); IupSetAttribute(mat_recurso,"txtQtd",(char*)txtQtd);
     IupSetAttribute(mat_recurso,"txtCusto",(char*)txtCusto); IupSetAttribute(mat_recurso,"txtLoc",(char*)txtLoc);
 
+    IupSetCallback(btnNovo, "ACTION", (Icallback)recurso_novo_cb);
     IupSetCallback(btnSalvar, "ACTION", (Icallback)recurso_salvar_wrap_cb);
     IupSetCallback(btnExcluir, "ACTION", (Icallback)recurso_excluir_wrap_cb);
     IupSetCallback(btnAtualizar, "ACTION", (Icallback)recurso_atualizar_cb);

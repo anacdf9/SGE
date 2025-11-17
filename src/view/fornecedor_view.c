@@ -14,13 +14,13 @@ static void fornecedor_recarregar_matriz(Ihandle *mat){
     IupSetAttribute(mat,"NUMCOL","7"); IupSetAttribute(mat,"NUMLIN",k);
     IupSetAttribute(mat,"0:1","ID"); IupSetAttribute(mat,"0:2","Nome Fantasia"); IupSetAttribute(mat,"0:3","Razão Social"); IupSetAttribute(mat,"0:4","CNPJ/CPF"); IupSetAttribute(mat,"0:5","Endereço"); IupSetAttribute(mat,"0:6","Telefone"); IupSetAttribute(mat,"0:7","Serviço");
     for(int i=1;i<=n;i++){ char idb[32]; sprintf(idb,"%d",buf[i-1].id);
-        IupSetAttributeId2(mat,"",i,1,idb);
-        IupSetAttributeId2(mat,"",i,2,buf[i-1].nome_fantasia);
-        IupSetAttributeId2(mat,"",i,3,buf[i-1].razao_social);
-        IupSetAttributeId2(mat,"",i,4,buf[i-1].cnpj_cpf);
-        IupSetAttributeId2(mat,"",i,5,buf[i-1].endereco);
-        IupSetAttributeId2(mat,"",i,6,buf[i-1].telefone);
-        IupSetAttributeId2(mat,"",i,7,buf[i-1].tipo_servico);
+        IupSetStrAttributeId2(mat,"",i,1,idb);
+        IupSetStrAttributeId2(mat,"",i,2,buf[i-1].nome_fantasia);
+        IupSetStrAttributeId2(mat,"",i,3,buf[i-1].razao_social);
+        IupSetStrAttributeId2(mat,"",i,4,buf[i-1].cnpj_cpf);
+        IupSetStrAttributeId2(mat,"",i,5,buf[i-1].endereco);
+        IupSetStrAttributeId2(mat,"",i,6,buf[i-1].telefone);
+        IupSetStrAttributeId2(mat,"",i,7,buf[i-1].tipo_servico);
     }
 }
 
@@ -46,8 +46,29 @@ static int fornecedor_excluir_wrap_cb(Ihandle *self){
     return IUP_DEFAULT;
 }
 
+static int fornecedor_novo_cb(Ihandle *self){
+    Ihandle *txtId=(Ihandle*)IupGetAttribute(self,"txtId");
+    Ihandle *txtNF=(Ihandle*)IupGetAttribute(self,"txtNF");
+    Ihandle *txtRS=(Ihandle*)IupGetAttribute(self,"txtRS");
+    Ihandle *txtDoc=(Ihandle*)IupGetAttribute(self,"txtDoc");
+    Ihandle *txtEnd=(Ihandle*)IupGetAttribute(self,"txtEnd");
+    Ihandle *txtTel=(Ihandle*)IupGetAttribute(self,"txtTel");
+    Ihandle *txtServ=(Ihandle*)IupGetAttribute(self,"txtServ");
+    IupSetAttribute(txtId,"VALUE","");
+    IupSetAttribute(txtNF,"VALUE","");
+    IupSetAttribute(txtRS,"VALUE","");
+    IupSetAttribute(txtDoc,"VALUE","");
+    IupSetAttribute(txtEnd,"VALUE","");
+    IupSetAttribute(txtTel,"VALUE","");
+    IupSetAttribute(txtServ,"VALUE","");
+    IupSetFocus(txtNF);
+    return IUP_DEFAULT;
+}
+
 static Ihandle* fornecedor_view_create(void) {
     Ihandle *txtId = IupText(NULL);
+    IupSetAttribute(txtId, "READONLY", "YES");
+    IupSetAttribute(txtId, "TIP", "Gerado automaticamente");
     Ihandle *txtNF = IupText(NULL);
     Ihandle *txtRS = IupText(NULL);
     Ihandle *txtDoc = IupText(NULL);
@@ -55,6 +76,7 @@ static Ihandle* fornecedor_view_create(void) {
     Ihandle *txtTel = IupText(NULL);
     Ihandle *txtServ = IupText(NULL);
 
+    Ihandle *btnNovo = IupButton("Novo", NULL);
     Ihandle *btnSalvar = IupButton("Salvar", NULL);
     Ihandle *btnExcluir = IupButton("Excluir", NULL);
     Ihandle *btnAtualizar = IupButton("Atualizar Lista", NULL);
@@ -85,14 +107,23 @@ static Ihandle* fornecedor_view_create(void) {
     );
     ui_style_form(rows);
 
+    Ihandle *btn_row = IupHbox(IupFill(), btnNovo, btnSalvar, btnExcluir, btnAtualizar, IupFill(), NULL);
     Ihandle *form = IupVbox(
         IupLabel("Cadastro de Fornecedores/Parceiros"),
         rows,
-        ui_buttons_center(btnSalvar, btnExcluir, btnAtualizar),
+        btn_row,
         IupSetAttributes(IupFrame(mat_forn), "TITLE=Lista de Fornecedores"),
         NULL
     );
     ui_style_form(form);
+
+    IupSetAttribute(btnNovo, "txtId", (char*)txtId);
+    IupSetAttribute(btnNovo, "txtNF", (char*)txtNF);
+    IupSetAttribute(btnNovo, "txtRS", (char*)txtRS);
+    IupSetAttribute(btnNovo, "txtDoc", (char*)txtDoc);
+    IupSetAttribute(btnNovo, "txtEnd", (char*)txtEnd);
+    IupSetAttribute(btnNovo, "txtTel", (char*)txtTel);
+    IupSetAttribute(btnNovo, "txtServ", (char*)txtServ);
 
     IupSetAttribute(btnSalvar, "txtId", (char*)txtId);
     IupSetAttribute(btnSalvar, "txtNF", (char*)txtNF);
@@ -108,6 +139,7 @@ static Ihandle* fornecedor_view_create(void) {
 
     IupSetAttribute(mat_forn,"txtId",(char*)txtId); IupSetAttribute(mat_forn,"txtNF",(char*)txtNF); IupSetAttribute(mat_forn,"txtRS",(char*)txtRS); IupSetAttribute(mat_forn,"txtDoc",(char*)txtDoc); IupSetAttribute(mat_forn,"txtEnd",(char*)txtEnd); IupSetAttribute(mat_forn,"txtTel",(char*)txtTel); IupSetAttribute(mat_forn,"txtServ",(char*)txtServ);
 
+    IupSetCallback(btnNovo, "ACTION", (Icallback)fornecedor_novo_cb);
     IupSetCallback(btnSalvar, "ACTION", (Icallback)fornecedor_salvar_wrap_cb);
     IupSetCallback(btnExcluir, "ACTION", (Icallback)fornecedor_excluir_wrap_cb);
     IupSetCallback(btnAtualizar, "ACTION", (Icallback)fornecedor_atualizar_cb);

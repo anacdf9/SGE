@@ -3,8 +3,10 @@
 #include "../model/pers.h"
 #include "recurso_controller.h"
 
+static int recurso_next_id(void){ Recurso v[1024]; int n=recurso_listar(v,1024); int m=0; for(int i=0;i<n;i++) if(v[i].id>m) m=v[i].id; return m+1; }
+
 int recurso_salvar(Recurso r) {
-    if (r.id <= 0) return 0;
+    if (r.id <= 0) { r.id = recurso_next_id(); if(r.id<=0) r.id=1; }
     return pers_salvar_recurso(r);
 }
 
@@ -25,15 +27,14 @@ int recurso_salvar_cb(Ihandle *self) {
     Ihandle *txtLoc = (Ihandle*)IupGetAttribute(self, "txtLoc");
 
     Recurso r;
-    r.id = atoi(IupGetAttribute(txtId, "VALUE"));
-    if (r.id <= 0) { IupMessage("Erro", "ID inválido."); return IUP_DEFAULT; }
+    r.id = atoi(IupGetAttribute(txtId, "VALUE")); /* se <=0, será gerado em recurso_salvar */
     strcpy(r.descricao, IupGetAttribute(txtDesc, "VALUE"));
     strcpy(r.categoria, IupGetAttribute(txtCat, "VALUE"));
     r.quantidade = atoi(IupGetAttribute(txtQtd, "VALUE"));
     r.preco_custo = atof(IupGetAttribute(txtCusto, "VALUE"));
     r.valor_locacao = atof(IupGetAttribute(txtLoc, "VALUE"));
 
-    if (recurso_salvar(r)) IupMessage("Sucesso", "Recurso salvo."); else IupMessage("Erro", "Falha ao salvar.");
+    if (recurso_salvar(r)) { IupSetfAttribute(txtId,"VALUE","%d", r.id); IupMessage("Sucesso", "Recurso salvo."); } else IupMessage("Erro", "Falha ao salvar.");
     return IUP_DEFAULT;
 }
 
