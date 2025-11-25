@@ -1,23 +1,90 @@
+/*
+===============================================================================
+   RECURSO CONTROLLER
+   
+   Responsável por:
+   - Gerenciar cadastro de recursos/equipamentos
+   - Controlar estoque de recursos
+   - Atualizar preços de locação
+   - Callbacks para interface gráfica
+===============================================================================
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include "../model/pers.h"
 #include "recurso_controller.h"
+#include <iup.h>
 
-static int recurso_next_id(void){ Recurso v[1024]; int n=recurso_listar(v,1024); int m=0; for(int i=0;i<n;i++) if(v[i].id>m) m=v[i].id; return m+1; }
 
+/* ========================================
+   FUNÇÕES AUXILIARES
+   ======================================== */
+
+// Gera o próximo ID disponível para recurso
+static int recurso_next_id(void) {
+    Recurso v[1024];
+    int n = recurso_listar(v, 1024);
+    int m = 0;
+    
+    for (int i = 0; i < n; i++) {
+        if (v[i].id > m) {
+            m = v[i].id;
+        }
+    }
+    
+    return m + 1;
+}
+
+
+/* ========================================
+   FUNÇÕES PRINCIPAIS
+   ======================================== */
+
+// Salva ou atualiza um recurso
 int recurso_salvar(Recurso r) {
-    if (r.id <= 0) { r.id = recurso_next_id(); if(r.id<=0) r.id=1; }
+    // Gera ID se necessário
+    if (r.id <= 0) {
+        r.id = recurso_next_id();
+        if (r.id <= 0) r.id = 1;
+    }
+    
     return pers_salvar_recurso(r);
 }
 
+// Exclui um recurso do cadastro
 int recurso_excluir(int id) {
     return pers_remover_recurso(id);
 }
 
+// Lista todos os recursos cadastrados
 int recurso_listar(Recurso *buffer, int max) {
     return pers_carregar_recursos(buffer, max);
 }
 
+// Busca um recurso específico pelo ID
+int recurso_obter(int id, Recurso *out) {
+    if (!out || id <= 0) return 0;
+    
+    Recurso v[1024];
+    int n = recurso_listar(v, 1024);
+    
+    for (int i = 0; i < n; i++) {
+        if (v[i].id == id) {
+            *out = v[i];
+            return 1;
+        }
+    }
+    
+    return 0;
+}
+
+
+/* ========================================
+   CALLBACKS PARA INTERFACE GRÁFICA (IUP)
+   ======================================== */
+
+// Callback do botão Salvar - captura dados do formulário
 int recurso_salvar_cb(Ihandle *self) {
     Ihandle *txtId = (Ihandle*)IupGetAttribute(self, "txtId");
     Ihandle *txtDesc = (Ihandle*)IupGetAttribute(self, "txtDesc");

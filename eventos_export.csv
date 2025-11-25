@@ -1,4 +1,2 @@
 ID;Cliente;Recurso;Equipe;Fornecedor;Inicio;Fim;Status;Estimado;Final
-1;1 - bruno duarte;0;1 - gfdg;0;20/11/0016;20/11/0016;Aprovado;294.00;0.00
-2;3 - bruno duarte;0;1 - gfdg;0;20/11/0016;20/11/0016;Rascunho;56635.00;0.00
-3;2 - aan clara;1 - slaaa;1 - gfdg;1 - dsfsd;20/11/0015;20/11/0016;Rascunho;260.00;0.00
+1;3 - bruno duarte;1 - slaaa;1 - gfdg;1 - dsfsd;24/11/2025;24/11/2025;Rascunho;301.00;0.00

@@ -29,4 +29,7 @@ void ui_set_width_px(Ihandle* h, int px);
 /* Cria um HBox com botões centralizados */
 Ihandle* ui_buttons_center(Ihandle* b1, Ihandle* b2, Ihandle* b3);
 
+/* Seleciona no list o item cujo ID armazenado em "ID_%d" é igual ao id */
+void ui_find_and_set_item_by_id(Ihandle* list, int id);
+
 #endif

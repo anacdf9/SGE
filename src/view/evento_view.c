@@ -1,3 +1,29 @@
+/*
+===============================================================================
+   EVENTO VIEW - Interface Gráfica Complexa
+   
+   Tela de orçamentos e eventos - A MAIS IMPORTANTE DO SISTEMA!
+   
+   Estrutura:
+   - Matriz principal listando todos os eventos
+   - Formulário com dados básicos do evento
+   - Sistema de ABAS para organizar informações:
+     * Aba 1: Dados gerais (nome, datas, cliente, operador, status)
+     * Aba 2: Recursos alocados (equipamentos)
+     * Aba 3: Equipe alocada (membros e horas)
+     * Aba 4: Fornecedores contratados
+   
+   Funcionalidades:
+   - Criar orçamentos
+   - Alocar recursos/equipe/fornecedores
+   - Calcular valor total automaticamente
+   - Aprovar orçamentos (verifica conflitos)
+   - Finalizar eventos
+   
+   Botões principais: Novo, Salvar, Aprovar, Finalizar, Excluir, Atualizar
+===============================================================================
+*/
+
 #include <iup.h>
 #include <iupcontrols.h>
 #include <stdlib.h>
@@ -7,258 +33,818 @@
 #include <ctype.h>
 #include "../controller/evento_controller.h"
 #include "../controller/cliente_controller.h"
+#include "../controller/operador_controller.h"
 #include "../controller/recurso_controller.h"
 #include "../controller/equipe_controller.h"
 #include "../controller/fornecedor_controller.h"
 #include "../model/evento.h"
 #include "../model/cliente.h"
+#include "../model/operador.h"
+#include "../model/evento_item.h"
+#include "../model/evento_equipe.h"
+#include "../model/evento_fornecedor.h"
 #include "ui_common.h"
+#include "../model/pers.h"
 
-static Ihandle *dlg_evento = NULL;
-static Ihandle *mat_evento = NULL;
 
-/* forward decl. para ordenação de clientes usada antes da definição */
-static int cliente_nome_cmp(const void *a,const void *b);
+/* ========================================
+   VARIÁVEIS GLOBAIS DA TELA
+   ======================================== */
 
-static const char* iso_to_br(const char *s){
-  static char out[11];
-  if(!s||strlen(s)<8){ strcpy(out,"--/--/----"); return out; }
-  int a=0,b=0,c=0;
-  if(strchr(s,'-')){
-    if(sscanf(s, "%d-%d-%d", &a, &b, &c)==3){ /* assume y-m-d */
-      snprintf(out, sizeof(out), "%02d/%02d/%04d", c, b, a);
-      return out;
+// Componentes principais
+static Ihandle *dialog = NULL;
+static Ihandle *mat_main = NULL;
+static int edit_id = 0;  // ID do evento sendo editado
+
+// Controles do formulário principal
+static Ihandle *txt_nome;
+static Ihandle *txt_data_ini;
+static Ihandle *txt_data_fim;
+static Ihandle *drop_cliente;
+static Ihandle *drop_operador;
+
+// Labels para exibir totais calculados
+static Ihandle *lbl_total_est_text;
+static Ihandle *lbl_total_est_val;
+static Ihandle *lbl_total_final_text;
+static Ihandle *lbl_total_final_val;
+
+// Controles da aba de Recursos
+static Ihandle *mat_recursos = NULL;
+static Ihandle *lstRecurso = NULL;
+static Ihandle *txtRecursoQtd = NULL;
+
+// Controles da aba de Equipes
+static Ihandle *mat_equipes = NULL;
+static Ihandle *lstEquipe = NULL;
+static Ihandle *txtEquipeHoras = NULL;
+
+// Controles da aba de Fornecedores
+static Ihandle *mat_fornecedores = NULL;
+static Ihandle *lstFornecedor = NULL;
+static Ihandle *txtFornecedorValor = NULL;
+
+
+/* ========================================
+   FUNÇÕES AUXILIARES
+   ======================================== */
+
+// Forward declarations
+static void evento_view_reload_main_matrix(void);
+static void carregar_abas(int evento_id);
+
+static int evento_obter(int id, Evento *out) {
+    if (id <= 0 || !out) return 0;
+    Evento buffer[1024];
+    int n = evento_listar(buffer, 1024);
+    for (int i = 0; i < n; i++) {
+        if (buffer[i].id == id) {
+            *out = buffer[i];
+            return 1;
+        }
     }
-  } else if(strchr(s,'/')){
-    if(sscanf(s, "%d/%d/%d", &a, &b, &c)==3){
-      if(a>31){ /* yyyy/mm/dd */
-        snprintf(out, sizeof(out), "%02d/%02d/%04d", c, b, a);
-      } else { /* dd/mm/yyyy */
-        snprintf(out, sizeof(out), "%02d/%02d/%04d", a, b, c);
-      }
-      return out;
+    return 0;
+}
+
+static void limpar_matriz(Ihandle *mat) {
+    if (!mat) return;
+    IupSetAttribute(mat, "NUMLIN", "1");
+    int col_count = IupGetInt(mat, "NUMCOL");
+    for (int i = 1; i <= col_count; i++) {
+        IupSetStrAttributeId2(mat, "", 1, i, "");
     }
-  }
-  strcpy(out,"--/--/----"); return out;
-}
-/* helper: carregar evento por ID da persistência */
-static int evento_carregar_por_id(int id, Evento *out){
-  if(id<=0||!out) return 0;
-  Evento buf[512]; int n=evento_listar(buf,512);
-  for(int i=0;i<n;i++){ if(buf[i].id==id){ *out=buf[i]; return 1; } }
-  return 0;
-}
-static int date_cmp(int d1,int m1,int y1,int d2,int m2,int y2){ if(y1!=y2) return y1<y2?-1:1; if(m1!=m2) return m1<m2?-1:1; if(d1!=d2) return d1<d2?-1:1; return 0; }
-/* aceita dd/mm/yyyy, yyyy-mm-dd e yyyy/mm/dd */
-static int parse_date_auto(const char *s,int *d,int *m,int *y){
-  if(!s) return 0;
-  if(strchr(s,'-')){
-    int yy,mm,dd; if(sscanf(s,"%d-%d-%d",&yy,&mm,&dd)==3){ *d=dd; *m=mm; *y=yy; return 1; }
-  } else if(strchr(s,'/')){
-    int a,b,c; if(sscanf(s,"%d/%d/%d",&a,&b,&c)==3){ if(a>31){ /* yyyy/mm/dd */ *y=a; *m=b; *d=c; } else { /* dd/mm/yyyy */ *d=a; *m=b; *y=c; } return 1; }
-  }
-  return 0;
-}
-static void evento_view_recarregar(Ihandle *mat){ Evento buf[256]; int n=evento_listar(buf,256); IupSetAttribute(mat,"NUMCOL","10");
- IupSetAttribute(mat,"0:1","ID"); IupSetAttribute(mat,"0:2","Cliente"); IupSetAttribute(mat,"0:3","Recurso"); IupSetAttribute(mat,"0:4","Equipe"); IupSetAttribute(mat,"0:5","Fornecedor"); IupSetAttribute(mat,"0:6","Início"); IupSetAttribute(mat,"0:7","Fim"); IupSetAttribute(mat,"0:8","Status"); IupSetAttribute(mat,"0:9","Estimado"); IupSetAttribute(mat,"0:10","Final");
- /* filtros */
- Ihandle *fIni=IupGetAttributeHandle(mat,"txtFiltroInicio"); Ihandle *fFim=IupGetAttributeHandle(mat,"txtFiltroFim");
- int fd=0,fm=0,fy=0,td=0,tm=0,ty=0; int usar_filtro_data=0; if(fIni&&fFim){ const char *sv1=IupGetAttribute(fIni,"VALUE"); const char *sv2=IupGetAttribute(fFim,"VALUE"); if(parse_date_auto(sv1,&fd,&fm,&fy) && parse_date_auto(sv2,&td,&tm,&ty) && date_cmp(fd,fm,fy,td,tm,ty)<=0){ usar_filtro_data=1; } }
- /* carrega listas */
- Cliente clientes[256]; int cn=cliente_listar(clientes,256);
- Recurso recursos[256]; int rn=recurso_listar(recursos,256);
- Equipe equipes[256]; int en=equipe_listar(equipes,256);
- Fornecedor forns[256]; int fn=fornecedor_listar(forns,256);
- int linha_visual=0;
- for(int i=0;i<n;i++){
-  if(usar_filtro_data){ int d1,m1,y1; if(!parse_date_auto(buf[i].data_inicio,&d1,&m1,&y1)) continue; if(date_cmp(d1,m1,y1,fd,fm,fy)<0 || date_cmp(d1,m1,y1,td,tm,ty)>0) continue; }
-  linha_visual++; char idb[32]; sprintf(idb,"%d",buf[i].id); char estb[32]; sprintf(estb,"%.2f",buf[i].total_estimado); char finb[32]; sprintf(finb,"%.2f",buf[i].total_final); char st[32];
-  if(buf[i].status==EVENTO_STATUS_RASCUNHO) strcpy(st,"Rascunho");
-  else if(buf[i].status==EVENTO_STATUS_APROVADO) strcpy(st,"Aprovado");
-  else if(buf[i].status==EVENTO_STATUS_FINALIZADO) strcpy(st,"Finalizado");
-  else snprintf(st,sizeof(st),"%d", (int)buf[i].status);
-  char cname[128]; cname[0]='\0'; for(int c=0;c<cn;c++){ if(clientes[c].id==buf[i].cliente_id){ snprintf(cname,sizeof(cname),"%d - %s", clientes[c].id, clientes[c].nome); break; } }
-  if(cname[0]=='\0') strcpy(cname,"(sem cliente)");
-  char rname[140]; rname[0]='\0'; for(int r=0;r<rn;r++){ if(recursos[r].id==buf[i].recurso_id){ snprintf(rname,sizeof(rname),"%d - %s", recursos[r].id, recursos[r].descricao); break; } }
-  if(rname[0]=='\0') sprintf(rname,"%d", buf[i].recurso_id);
-  char ename[140]; ename[0]='\0'; for(int e=0;e<en;e++){ if(equipes[e].id==buf[i].equipe_id){ snprintf(ename,sizeof(ename),"%d - %s", equipes[e].id, equipes[e].nome); break; } }
-  if(ename[0]=='\0') sprintf(ename,"%d", buf[i].equipe_id);
-  char fname[140]; fname[0]='\0'; for(int f=0;f<fn;f++){ if(forns[f].id==buf[i].fornecedor_id){ snprintf(fname,sizeof(fname),"%d - %s", forns[f].id, forns[f].nome_fantasia); break; } }
-  if(fname[0]=='\0') sprintf(fname,"%d", buf[i].fornecedor_id);
-  IupSetStrAttributeId2(mat,"",linha_visual,1,idb);
-  IupSetStrAttributeId2(mat,"",linha_visual,2,cname);
-  IupSetStrAttributeId2(mat,"",linha_visual,3,rname);
-  IupSetStrAttributeId2(mat,"",linha_visual,4,ename);
-  IupSetStrAttributeId2(mat,"",linha_visual,5,fname);
-  IupSetStrAttributeId2(mat,"",linha_visual,6,(char*)iso_to_br(buf[i].data_inicio));
-  IupSetStrAttributeId2(mat,"",linha_visual,7,(char*)iso_to_br(buf[i].data_fim));
-  IupSetStrAttributeId2(mat,"",linha_visual,8,st); IupSetStrAttributeId2(mat,"",linha_visual,9,estb); IupSetStrAttributeId2(mat,"",linha_visual,10,finb);
- }
- if(linha_visual==0){ linha_visual=1; }
- char k2[16]; sprintf(k2,"%d",linha_visual); IupSetAttribute(mat,"NUMLIN",k2);
 }
 
-/* Recarrega as listas de seleção (cliente, recurso, equipe, fornecedor) e o filtro de cliente */
-static void evento_repopular_listas(Ihandle *anchor){
-  if(!anchor) return;
-  Ihandle *txtCliente=IupGetAttributeHandle(anchor,"txtCliente");
-  Ihandle *txtRecurso=IupGetAttributeHandle(anchor,"txtRecurso");
-  Ihandle *txtEquipe=IupGetAttributeHandle(anchor,"txtEquipe");
-  Ihandle *txtFornecedor=IupGetAttributeHandle(anchor,"txtFornecedor");
-  /* guarda seleções atuais (IDs) para restaurar após repopular */
-  int sel_cli_id=0, sel_rec_id=0, sel_eq_id=0, sel_for_id=0;
-  if(txtCliente){ int idx=atoi(IupGetAttribute(txtCliente,"VALUE")); if(idx>0){ const char *it=IupGetAttributeId(txtCliente,"",idx); if(it) sel_cli_id=atoi(it); }}
-  if(txtRecurso){ int idx=atoi(IupGetAttribute(txtRecurso,"VALUE")); if(idx>0){ const char *it=IupGetAttributeId(txtRecurso,"",idx); if(it) sel_rec_id=atoi(it); }}
-  if(txtEquipe){ int idx=atoi(IupGetAttribute(txtEquipe,"VALUE")); if(idx>0){ const char *it=IupGetAttributeId(txtEquipe,"",idx); if(it) sel_eq_id=atoi(it); }}
-  if(txtFornecedor){ int idx=atoi(IupGetAttribute(txtFornecedor,"VALUE")); if(idx>0){ const char *it=IupGetAttributeId(txtFornecedor,"",idx); if(it) sel_for_id=atoi(it); }}
+// Salva itens das matrizes. Convenção: col1 = ID, col2 = descrição, col3 = qtd/horas/valor
+static void salvar_itens_matriz(Ihandle* matrix, int evento_id, int tipo) {
+    if (!matrix || evento_id <= 0) return;
 
-  /* Clientes (ordenado) */
-  if(txtCliente){
-    Cliente cbuf[256]; int cn=cliente_listar(cbuf,256); if(cn>1) qsort(cbuf,cn,sizeof(Cliente),cliente_nome_cmp);
-    IupSetAttribute(txtCliente,"REMOVEITEM","ALL");
-    if(cn<=0){ IupSetStrAttributeId(txtCliente, "", 1, "0 - (nenhum)"); }
-    else { for(int i=0;i<cn;i++){ char line[256]; snprintf(line,sizeof(line),"%d - %s", cbuf[i].id, cbuf[i].nome); IupSetStrAttributeId(txtCliente, "", i+1, line); } }
-    /* restaura seleção por ID */
-    if(sel_cli_id>0){ int count=atoi(IupGetAttribute(txtCliente,"COUNT")); for(int i=1;i<=count;i++){ const char *it=IupGetAttributeId(txtCliente,"",i); if(it && atoi(it)==sel_cli_id){ char b[16]; snprintf(b,sizeof(b),"%d",i); IupSetAttribute(txtCliente,"VALUE",b); break; } } }
-    if(!atoi(IupGetAttribute(txtCliente,"VALUE"))) IupSetAttribute(txtCliente,"VALUE","1");
-  }
+    int linhas = IupGetInt(matrix, "NUMLIN");
+    if (linhas <= 0) return;
+    
+    for (int i = 1; i <= linhas; i++) {
+        const char *c_id = IupGetAttributeId2(matrix, "", i, 1);
+        const char *c_val = IupGetAttributeId2(matrix, "", i, 3);
 
-  /* Recursos */
-  if(txtRecurso){ Recurso rbuf[256]; int rn=recurso_listar(rbuf,256); IupSetAttribute(txtRecurso,"REMOVEITEM","ALL"); if(rn<=0){ IupSetStrAttributeId(txtRecurso, "", 1, "0 - (nenhum)"); } else { for(int i=0;i<rn;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", rbuf[i].id, rbuf[i].descricao); IupSetStrAttributeId(txtRecurso, "", i+1, line); } } if(sel_rec_id>0){ int count=atoi(IupGetAttribute(txtRecurso,"COUNT")); for(int i=1;i<=count;i++){ const char *it=IupGetAttributeId(txtRecurso,"",i); if(it && atoi(it)==sel_rec_id){ char b[16]; snprintf(b,sizeof(b),"%d",i); IupSetAttribute(txtRecurso,"VALUE",b); break; } } } if(!atoi(IupGetAttribute(txtRecurso,"VALUE"))) IupSetAttribute(txtRecurso,"VALUE","1"); }
+        if (!c_id || c_id[0] == '\0') continue;
+        if (!c_val || c_val[0] == '\0') continue;
 
-  /* Equipes */
-  if(txtEquipe){ Equipe ebuf[256]; int en=equipe_listar(ebuf,256); IupSetAttribute(txtEquipe,"REMOVEITEM","ALL"); if(en<=0){ IupSetStrAttributeId(txtEquipe, "", 1, "0 - (nenhuma)"); } else { for(int i=0;i<en;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", ebuf[i].id, ebuf[i].nome); IupSetStrAttributeId(txtEquipe, "", i+1, line); } } if(sel_eq_id>0){ int count=atoi(IupGetAttribute(txtEquipe,"COUNT")); for(int i=1;i<=count;i++){ const char *it=IupGetAttributeId(txtEquipe,"",i); if(it && atoi(it)==sel_eq_id){ char b[16]; snprintf(b,sizeof(b),"%d",i); IupSetAttribute(txtEquipe,"VALUE",b); break; } } } if(!atoi(IupGetAttribute(txtEquipe,"VALUE"))) IupSetAttribute(txtEquipe,"VALUE","1"); }
+        int item_id = atoi(c_id);
+        if (item_id <= 0) continue;
 
-  /* Fornecedores */
-  if(txtFornecedor){ Fornecedor fbuf[256]; int fn=fornecedor_listar(fbuf,256); IupSetAttribute(txtFornecedor,"REMOVEITEM","ALL"); if(fn<=0){ IupSetStrAttributeId(txtFornecedor, "", 1, "0 - (nenhum)"); } else { for(int i=0;i<fn;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", fbuf[i].id, fbuf[i].nome_fantasia); IupSetStrAttributeId(txtFornecedor, "", i+1, line); } } if(sel_for_id>0){ int count=atoi(IupGetAttribute(txtFornecedor,"COUNT")); for(int i=1;i<=count;i++){ const char *it=IupGetAttributeId(txtFornecedor,"",i); if(it && atoi(it)==sel_for_id){ char b[16]; snprintf(b,sizeof(b),"%d",i); IupSetAttribute(txtFornecedor,"VALUE",b); break; } } } if(!atoi(IupGetAttribute(txtFornecedor,"VALUE"))) IupSetAttribute(txtFornecedor,"VALUE","1"); }
+        switch (tipo) {
+            case 0: { // Recursos
+                EventoItem it = {0};
+                it.evento_id = evento_id;
+                it.recurso_id = item_id;
+                it.quantidade = atoi(c_val);
+                if (it.quantidade > 0) pers_salvar_evento_item(it);
+                break;
+            }
+            case 1: { // Equipes
+                EventoEquipe ee = {0};
+                ee.evento_id = evento_id;
+                ee.equipe_id = item_id;
+                ee.horas_trabalhadas = atof(c_val);
+                if (ee.horas_trabalhadas > 0) pers_salvar_evento_equipe(ee);
+                break;
+            }
+            case 2: { // Fornecedores
+                EventoFornecedor ef = {0};
+                ef.evento_id = evento_id;
+                ef.fornecedor_id = item_id;
+                ef.valor_servico = atof(c_val);
+                if (ef.valor_servico > 0) pers_salvar_evento_fornecedor(ef);
+                break;
+            }
+        }
+    }
 }
 
-static int evento_click_cb(Ihandle *mat,int lin,int col,char *status){ if(lin<=0) return IUP_DEFAULT; Ihandle *tId=IupGetAttributeHandle(mat,"txtId"); Ihandle *tCliente=IupGetAttributeHandle(mat,"txtCliente"); Ihandle *tRecurso=IupGetAttributeHandle(mat,"txtRecurso"); Ihandle *tEquipe=IupGetAttributeHandle(mat,"txtEquipe"); Ihandle *tForn=IupGetAttributeHandle(mat,"txtFornecedor"); Ihandle *tIni=IupGetAttributeHandle(mat,"txtInicio"); Ihandle *tFim=IupGetAttributeHandle(mat,"txtFim"); Ihandle *tRecursoQtd=IupGetAttributeHandle(mat,"txtRecursoQtd"); Ihandle *tEquipeHoras=IupGetAttributeHandle(mat,"txtEquipeHoras"); Ihandle *tFornValor=IupGetAttributeHandle(mat,"txtFornecedorValor"); Ihandle *tLocal=IupGetAttributeHandle(mat,"txtLocal");
- const char *v; v=IupGetAttributeId2(mat,"",lin,1); IupSetStrAttribute(tId,"VALUE", v?v:"");
- const char *c=IupGetAttributeId2(mat,"",lin,2); if(c&&tCliente){ int cid=atoi(c); int count=atoi(IupGetAttribute(tCliente,"COUNT")); for(int i=1;i<=count;i++){ const char *item=IupGetAttributeId(tCliente,"",i); if(item && atoi(item)==cid){ char idx[16]; snprintf(idx,sizeof(idx),"%d",i); IupSetAttribute(tCliente,"VALUE",idx); break; } } }
- const char *r=IupGetAttributeId2(mat,"",lin,3); if(r&&tRecurso){ int rid=atoi(r); int count=atoi(IupGetAttribute(tRecurso,"COUNT")); for(int i=1;i<=count;i++){ const char *item=IupGetAttributeId(tRecurso,"",i); if(item && atoi(item)==rid){ char idx[16]; snprintf(idx,sizeof(idx),"%d",i); IupSetAttribute(tRecurso,"VALUE",idx); break; } } }
- const char *e=IupGetAttributeId2(mat,"",lin,4); if(e&&tEquipe){ int eid=atoi(e); int count=atoi(IupGetAttribute(tEquipe,"COUNT")); for(int i=1;i<=count;i++){ const char *item=IupGetAttributeId(tEquipe,"",i); if(item && atoi(item)==eid){ char idx[16]; snprintf(idx,sizeof(idx),"%d",i); IupSetAttribute(tEquipe,"VALUE",idx); break; } } }
- const char *f=IupGetAttributeId2(mat,"",lin,5); if(f&&tForn){ int fid=atoi(f); int count=atoi(IupGetAttribute(tForn,"COUNT")); for(int i=1;i<=count;i++){ const char *item=IupGetAttributeId(tForn,"",i); if(item && atoi(item)==fid){ char idx[16]; snprintf(idx,sizeof(idx),"%d",i); IupSetAttribute(tForn,"VALUE",idx); break; } } }
- /* datas: converter da célula (dd/mm/yyyy) para yyyy/mm/dd antes de setar no DatePick */
- const char *vin=IupGetAttributeId2(mat,"",lin,6); int dd,mm,yy; if(parse_date_auto(vin,&dd,&mm,&yy)){ char iso[32]; snprintf(iso,sizeof(iso),"%04d/%02d/%02d", yy,mm,dd); IupSetAttribute(tIni,"VALUE", iso); } else { IupSetAttribute(tIni,"VALUE",""); }
- const char *vfi=IupGetAttributeId2(mat,"",lin,7); if(parse_date_auto(vfi,&dd,&mm,&yy)){ char iso2[32]; snprintf(iso2,sizeof(iso2),"%04d/%02d/%02d", yy,mm,dd); IupSetAttribute(tFim,"VALUE", iso2); } else { IupSetAttribute(tFim,"VALUE",""); }
- /* carregar campos adicionais não exibidos na matriz */
- int cur_id = v?atoi(v):0; Evento ev; if(evento_carregar_por_id(cur_id,&ev)){
-   if(tRecursoQtd){ char b[32]; snprintf(b,sizeof(b),"%d", ev.recurso_qtd); IupSetAttribute(tRecursoQtd,"VALUE", b); }
-   if(tEquipeHoras){ char b[32]; snprintf(b,sizeof(b),"%.2f", ev.equipe_horas); IupSetAttribute(tEquipeHoras,"VALUE", b); }
-   if(tFornValor){ char b[32]; snprintf(b,sizeof(b),"%.2f", ev.fornecedor_valor); IupSetAttribute(tFornValor,"VALUE", b); }
-   if(tLocal){ IupSetAttribute(tLocal,"VALUE", ev.local); }
- }
- return IUP_DEFAULT; }
+static void repopular_dropdowns() {
+    char buffer[256];
 
-static int evento_novo_cb(Ihandle *self){ const char *ids[]={"txtId","txtCliente","txtRecurso","txtRecursoQtd","txtEquipe","txtEquipeHoras","txtFornecedor","txtFornecedorValor","txtInicio","txtFim","txtLocal"}; for(int i=0;i<11;i++){ Ihandle *h=IupGetAttributeHandle(self,ids[i]); if(h) IupSetAttribute(h,"VALUE",""); } Ihandle *focus=IupGetAttributeHandle(self,"txtCliente"); if(focus) IupSetFocus(focus); return IUP_DEFAULT; }
+    // Clientes
+    Cliente clientes[256];
+    int n_cli = cliente_listar(clientes, 256);
+    IupSetAttribute(drop_cliente, "REMOVEITEM", "ALL");
+    IupSetAttribute(drop_cliente, "1", "(Selecione)");
+    for (int i = 0; i < n_cli; i++) {
+        snprintf(buffer, sizeof(buffer), "%d - %s", clientes[i].id, clientes[i].nome);
+        IupSetStrAttributeId(drop_cliente, "", i + 2, buffer);
+    }
+    IupSetAttribute(drop_cliente, "VALUE", "1");
 
-static int evento_salvar_cb(Ihandle *self){ Ihandle *tId=IupGetAttributeHandle(self,"txtId"); Ihandle *tCliente=IupGetAttributeHandle(self,"txtCliente"); Ihandle *tRecurso=IupGetAttributeHandle(self,"txtRecurso"); Ihandle *tQtd=IupGetAttributeHandle(self,"txtRecursoQtd"); Ihandle *tEquipe=IupGetAttributeHandle(self,"txtEquipe"); Ihandle *tHoras=IupGetAttributeHandle(self,"txtEquipeHoras"); Ihandle *tForn=IupGetAttributeHandle(self,"txtFornecedor"); Ihandle *tFval=IupGetAttributeHandle(self,"txtFornecedorValor"); Ihandle *tIni=IupGetAttributeHandle(self,"txtInicio"); Ihandle *tFim=IupGetAttributeHandle(self,"txtFim"); Ihandle *tLocal=IupGetAttributeHandle(self,"txtLocal");
- Evento e; memset(&e,0,sizeof(e)); e.id=atoi(IupGetAttribute(tId,"VALUE"));
- /* Se o ID estiver vazio, tenta obter da linha focada na matriz para atualizar em vez de criar novo */
- if(e.id<=0 && mat_evento){ int fl=atoi(IupGetAttribute(mat_evento,"FOCUS_LIN")); if(fl>0){ const char *c1=IupGetAttributeId2(mat_evento,"",fl,1); if(c1 && *c1) e.id=atoi(c1); } }
-  Evento antigo; int tem_antigo = evento_carregar_por_id(e.id,&antigo);
- int sel_cliente=atoi(IupGetAttribute(tCliente,"VALUE")); if(sel_cliente>0){ const char *txt=IupGetAttributeId(tCliente,"",sel_cliente); if(txt) e.cliente_id=atoi(txt); }
- int sel_recurso=atoi(IupGetAttribute(tRecurso,"VALUE")); if(sel_recurso>0){ const char *txt=IupGetAttributeId(tRecurso,"",sel_recurso); if(txt) e.recurso_id=atoi(txt); }
- int sel_equipe=atoi(IupGetAttribute(tEquipe,"VALUE")); if(sel_equipe>0){ const char *txt=IupGetAttributeId(tEquipe,"",sel_equipe); if(txt) e.equipe_id=atoi(txt); }
- int sel_forn=atoi(IupGetAttribute(tForn,"VALUE")); if(sel_forn>0){ const char *txt=IupGetAttributeId(tForn,"",sel_forn); if(txt) e.fornecedor_id=atoi(txt); }
- e.recurso_qtd=atoi(IupGetAttribute(tQtd,"VALUE")); e.equipe_horas=atof(IupGetAttribute(tHoras,"VALUE")); e.fornecedor_valor=atof(IupGetAttribute(tFval,"VALUE"));
- /* Converte datas (aceita dd/mm/yyyy ou yyyy-mm-dd) -> YYYY-MM-DD */
- const char *dini=IupGetAttribute(tIni,"VALUE"); const char *dfim=IupGetAttribute(tFim,"VALUE");
- int d1,m1,y1,d2,m2,y2; if(!parse_date_auto(dini,&d1,&m1,&y1)){ IupMessage("Erro","Data início inválida."); return IUP_DEFAULT; }
- if(!parse_date_auto(dfim,&d2,&m2,&y2)){ IupMessage("Erro","Data fim inválida."); return IUP_DEFAULT; }
- /* valida limites simples */
- if(y1>y2 || (y1==y2 && m1>m2) || (y1==y2 && m1==m2 && d1>d2)){ IupMessage("Erro","Data início maior que data fim."); return IUP_DEFAULT; }
- snprintf(e.data_inicio,11,"%04d-%02d-%02d",y1,m1,d1); snprintf(e.data_fim,11,"%04d-%02d-%02d",y2,m2,d2);
- const char *locval=IupGetAttribute(tLocal,"VALUE"); if(!locval) locval=""; strncpy(e.local,locval,119); e.local[119]='\0';
-  /* preservar status anterior se editando */
-  if(e.id>0 && tem_antigo){ e.status = antigo.status; } else { e.status=EVENTO_STATUS_RASCUNHO; }
-  int ok=evento_salvar(e); if(ok){ IupSetfAttribute(tId,"VALUE","%d",e.id); IupMessage("Sucesso", e.id>0 && tem_antigo ? "Orçamento atualizado." : "Orçamento criado."); } else IupMessage("Erro","Falha ao salvar."); if(mat_evento){ evento_view_recarregar(mat_evento); /* foca na linha do ID salvo */
-   int linhas=atoi(IupGetAttribute(mat_evento,"NUMLIN")); char idb[32]; snprintf(idb,sizeof(idb),"%d", e.id); for(int i=1;i<=linhas;i++){ const char *c1=IupGetAttributeId2(mat_evento,"",i,1); if(c1 && strcmp(c1,idb)==0){ char bi[16]; snprintf(bi,sizeof(bi),"%d", i); IupSetAttribute(mat_evento,"FOCUS_LIN", bi); break; } } }
- return IUP_DEFAULT; }
+    // Operadores
+    Operador operadores[256];
+    int n_op = operador_listar(operadores, 256);
+    IupSetAttribute(drop_operador, "REMOVEITEM", "ALL");
+    IupSetAttribute(drop_operador, "1", "(Selecione)");
+    for (int i = 0; i < n_op; i++) {
+        snprintf(buffer, sizeof(buffer), "%d - %s", operadores[i].id, operadores[i].nome);
+        IupSetStrAttributeId(drop_operador, "", i + 2, buffer);
+    }
+    IupSetAttribute(drop_operador, "VALUE", "1");
 
-static int evento_aprovar_cb(Ihandle *self){ Ihandle *tId=IupGetAttributeHandle(self,"txtId"); int id=atoi(IupGetAttribute(tId,"VALUE")); if(id<=0){ IupMessage("Erro","ID inválido."); return IUP_DEFAULT; } if(evento_aprovar(id)) IupMessage("Sucesso","Evento aprovado."); else IupMessage("Erro","Não foi possível aprovar. Verifique datas."); if(mat_evento) evento_view_recarregar(mat_evento); return IUP_DEFAULT; }
-static int evento_finalizar_cb(Ihandle *self){ Ihandle *tId=IupGetAttributeHandle(self,"txtId"); int id=atoi(IupGetAttribute(tId,"VALUE")); if(id<=0){ IupMessage("Erro","ID inválido."); return IUP_DEFAULT; } if(evento_finalizar(id)) IupMessage("Sucesso","Evento finalizado."); else IupMessage("Erro","Status inválido."); if(mat_evento) evento_view_recarregar(mat_evento); return IUP_DEFAULT; }
-static int evento_atualizar_cb(Ihandle *self){
-  /* Atualiza listas e matriz para refletir alterações externas (novos cadastros/edições) */
-  if(mat_evento) evento_repopular_listas(mat_evento);
-  if(mat_evento) evento_view_recarregar(mat_evento);
-  return IUP_DEFAULT;
+    // Recursos
+    Recurso recursos[256];
+    int n_rec = recurso_listar(recursos, 256);
+    IupSetAttribute(lstRecurso, "REMOVEITEM", "ALL");
+    for (int i = 0; i < n_rec; i++) {
+        snprintf(buffer, sizeof(buffer), "%d - %s", recursos[i].id, recursos[i].descricao);
+        IupSetStrAttributeId(lstRecurso, "", i + 1, buffer);
+    }
+    IupSetAttribute(lstRecurso, "VALUE", "1");
+
+    // Equipes
+    Equipe equipes[256];
+    int n_eq = equipe_listar(equipes, 256);
+    IupSetAttribute(lstEquipe, "REMOVEITEM", "ALL");
+    for (int i = 0; i < n_eq; i++) {
+        snprintf(buffer, sizeof(buffer), "%d - %s", equipes[i].id, equipes[i].nome);
+        IupSetStrAttributeId(lstEquipe, "", i + 1, buffer);
+    }
+    IupSetAttribute(lstEquipe, "VALUE", "1");
+
+    // Fornecedores
+    Fornecedor fornecedores[256];
+    int n_for = fornecedor_listar(fornecedores, 256);
+    IupSetAttribute(lstFornecedor, "REMOVEITEM", "ALL");
+    for (int i = 0; i < n_for; i++) {
+        snprintf(buffer, sizeof(buffer), "%d - %s", fornecedores[i].id, fornecedores[i].nome_fantasia);
+        IupSetStrAttributeId(lstFornecedor, "", i + 1, buffer);
+    }
+    IupSetAttribute(lstFornecedor, "VALUE", "1");
 }
-/* callback para mudança imediata nos filtros (lista) */
-/* filtros de Status/Cliente removidos: callback de filtro não é mais necessário */
-static int evento_excluir_cb(Ihandle *self){ Ihandle *tId=IupGetAttributeHandle(self,"txtId"); int id=atoi(IupGetAttribute(tId,"VALUE")); if(id<=0){ IupMessage("Erro","Selecione um orçamento válido para excluir."); return IUP_DEFAULT; } if(IupAlarm("Confirmação","Excluir este orçamento?","OK","Cancelar",NULL)==1){ if(evento_excluir(id)){ IupMessage("Sucesso","Orçamento excluído."); IupSetAttribute(tId,"VALUE",""); if(mat_evento) evento_view_recarregar(mat_evento); } else { IupMessage("Erro","Falha ao excluir orçamento."); } } return IUP_DEFAULT; }
-static int evento_exportar_cb(Ihandle *self){ if(!mat_evento){ IupMessage("Erro","Sem dados."); return IUP_DEFAULT; } evento_view_recarregar(mat_evento); FILE *f=fopen("eventos_export.csv","w"); if(!f){ IupMessage("Erro","Falha ao criar arquivo."); return IUP_DEFAULT; } int linhas=atoi(IupGetAttribute(mat_evento,"NUMLIN")); fprintf(f,"ID;Cliente;Recurso;Equipe;Fornecedor;Inicio;Fim;Status;Estimado;Final\n"); for(int i=1;i<=linhas;i++){ const char *c1=IupGetAttributeId2(mat_evento,"",i,1); if(!c1||!*c1) continue; const char *c2=IupGetAttributeId2(mat_evento,"",i,2); const char *c3=IupGetAttributeId2(mat_evento,"",i,3); const char *c4=IupGetAttributeId2(mat_evento,"",i,4); const char *c5=IupGetAttributeId2(mat_evento,"",i,5); const char *c6=IupGetAttributeId2(mat_evento,"",i,6); const char *c7=IupGetAttributeId2(mat_evento,"",i,7); const char *c8=IupGetAttributeId2(mat_evento,"",i,8); const char *c9=IupGetAttributeId2(mat_evento,"",i,9); const char *c10=IupGetAttributeId2(mat_evento,"",i,10); fprintf(f,"%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n",c1,c2?c2:"",c3?c3:"",c4?c4:"",c5?c5:"",c6?c6:"",c7?c7:"",c8?c8:"",c9?c9:"",c10?c10:""); } fclose(f); IupMessage("Exportação","Gerado eventos_export.csv."); return IUP_DEFAULT; }
 
-static int cliente_nome_cmp(const void *a,const void *b){ const Cliente *c1=(const Cliente*)a; const Cliente *c2=(const Cliente*)b; return strcmp(c1->nome,c2->nome); }
-static Ihandle* evento_view_create(void){ Ihandle *txtId=IupText(NULL); IupSetAttribute(txtId,"READONLY","YES");
- /* Dropdown de clientes (ordenado) */
- Ihandle *txtCliente=IupList(NULL); IupSetAttribute(txtCliente,"DROPDOWN","YES"); IupSetAttribute(txtCliente,"EDITBOX","NO");
- Cliente cbuf[256]; int cn=cliente_listar(cbuf,256); if(cn>1) qsort(cbuf,cn,sizeof(Cliente),cliente_nome_cmp);
- IupSetAttribute(txtCliente,"REMOVEITEM","ALL");
- if(cn<=0){ IupSetStrAttributeId(txtCliente, "", 1, "0 - (nenhum)"); }
- else { for(int i=0;i<cn;i++){ char line[256]; snprintf(line,sizeof(line),"%d - %s", cbuf[i].id, cbuf[i].nome); IupSetStrAttributeId(txtCliente, "", i+1, line); } }
- IupSetAttribute(txtCliente,"VALUE","1"); /* seleciona primeira entrada */
- /* Campos restantes convertidos para listas */
- Ihandle *txtRecurso=IupList(NULL); IupSetAttribute(txtRecurso,"DROPDOWN","YES"); IupSetAttribute(txtRecurso,"EDITBOX","NO");
- Recurso rbuf[256]; int rn=recurso_listar(rbuf,256); IupSetAttribute(txtRecurso,"REMOVEITEM","ALL"); if(rn<=0){ IupSetStrAttributeId(txtRecurso, "", 1, "0 - (nenhum)"); } else { for(int i=0;i<rn;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", rbuf[i].id, rbuf[i].descricao); IupSetStrAttributeId(txtRecurso, "", i+1, line); } }
- IupSetAttribute(txtRecurso,"VALUE","1");
- Ihandle *txtRecursoQtd=IupText(NULL);
- Ihandle *txtEquipe=IupList(NULL); IupSetAttribute(txtEquipe,"DROPDOWN","YES"); IupSetAttribute(txtEquipe,"EDITBOX","NO");
- Equipe ebuf[256]; int en=equipe_listar(ebuf,256); IupSetAttribute(txtEquipe,"REMOVEITEM","ALL"); if(en<=0){ IupSetStrAttributeId(txtEquipe, "", 1, "0 - (nenhuma)"); } else { for(int i=0;i<en;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", ebuf[i].id, ebuf[i].nome); IupSetStrAttributeId(txtEquipe, "", i+1, line); } }
- IupSetAttribute(txtEquipe,"VALUE","1");
- Ihandle *txtEquipeHoras=IupText(NULL);
- Ihandle *txtFornecedor=IupList(NULL); IupSetAttribute(txtFornecedor,"DROPDOWN","YES"); IupSetAttribute(txtFornecedor,"EDITBOX","NO");
- Fornecedor fbuf[256]; int fn=fornecedor_listar(fbuf,256); IupSetAttribute(txtFornecedor,"REMOVEITEM","ALL"); if(fn<=0){ IupSetStrAttributeId(txtFornecedor, "", 1, "0 - (nenhum)"); } else { for(int i=0;i<fn;i++){ char line[200]; snprintf(line,sizeof(line),"%d - %s", fbuf[i].id, fbuf[i].nome_fantasia); IupSetStrAttributeId(txtFornecedor, "", i+1, line); } }
- IupSetAttribute(txtFornecedor,"VALUE","1");
- Ihandle *txtFornecedorValor=IupText(NULL);
- /* DatePick para datas */
- Ihandle *txtInicio=IupDatePick(); Ihandle *txtFim=IupDatePick();
- /* data atual em formato aceito pelo DatePick (yyyy/mm/dd) */
- time_t now=time(NULL); struct tm *lt=localtime(&now); char iso_now[32]; snprintf(iso_now,sizeof(iso_now),"%04d/%02d/%02d", (int)(lt->tm_year+1900), (int)(lt->tm_mon+1), (int)lt->tm_mday); IupSetAttribute(txtInicio,"VALUE", iso_now); IupSetAttribute(txtFim,"VALUE", iso_now);
- Ihandle *txtLocal=IupText(NULL);
- ui_set_width_px(txtId, UI_W_ID); ui_set_width_px(txtCliente, UI_W_MED); ui_set_width_px(txtRecurso, UI_W_MED); ui_set_width_px(txtRecursoQtd, UI_W_SHORT); ui_set_width_px(txtEquipe, UI_W_MED); ui_set_width_px(txtEquipeHoras, UI_W_SHORT); ui_set_width_px(txtFornecedor, UI_W_MED); ui_set_width_px(txtFornecedorValor, UI_W_MED); ui_set_width_px(txtInicio, UI_W_MED); ui_set_width_px(txtFim, UI_W_MED); ui_set_width_px(txtLocal, UI_W_XLONG);
- Ihandle *txtFiltroInicio=IupDatePick(); Ihandle *txtFiltroFim=IupDatePick();
- /* iniciar filtros de data vazios para não filtrar por padrão */
- IupSetAttribute(txtFiltroInicio,"MASKNOEMPTY","NO"); IupSetAttribute(txtFiltroFim,"MASKNOEMPTY","NO");
- IupSetAttribute(txtFiltroInicio,"VALUE",""); IupSetAttribute(txtFiltroFim,"VALUE","");
- ui_set_width_px(txtFiltroInicio, UI_W_MED); ui_set_width_px(txtFiltroFim, UI_W_MED);
- /* filtros de Status e Cliente removidos por solicitação */
- Ihandle *btnNovo=IupButton("Novo",NULL); Ihandle *btnSalvar=IupButton("Salvar",NULL); Ihandle *btnAprovar=IupButton("Aprovar",NULL); Ihandle *btnFinalizar=IupButton("Finalizar",NULL); Ihandle *btnExcluir=IupButton("Excluir",NULL); Ihandle *btnAtualizar=IupButton("Filtrar/Atualizar",NULL); Ihandle *btnExportar=IupButton("Exportar CSV",NULL);
- mat_evento=IupMatrix(NULL); IupSetAttribute(mat_evento,"NUMCOL","10"); IupSetAttribute(mat_evento,"NUMLIN","1"); IupSetAttribute(mat_evento,"EXPAND","YES"); IupSetAttribute(mat_evento,"WIDTH1","40"); IupSetAttribute(mat_evento,"WIDTH2","140"); IupSetAttribute(mat_evento,"WIDTH3","160"); IupSetAttribute(mat_evento,"WIDTH4","140"); IupSetAttribute(mat_evento,"WIDTH5","160"); IupSetAttribute(mat_evento,"WIDTH6","80"); IupSetAttribute(mat_evento,"WIDTH7","80"); IupSetAttribute(mat_evento,"WIDTH8","50"); IupSetAttribute(mat_evento,"WIDTH9","80"); IupSetAttribute(mat_evento,"WIDTH10","80");
- Ihandle *rows=IupVbox(
-  ui_pair("Código:", txtId),
-  ui_pair("Cliente:", txtCliente),
-  ui_pair("Recurso ID:", txtRecurso),
-  ui_pair("Qtd Recurso:", txtRecursoQtd),
-  ui_pair("Equipe ID:", txtEquipe),
-  ui_pair("Horas Equipe:", txtEquipeHoras),
-  ui_pair("Fornecedor ID:", txtFornecedor),
-  ui_pair("Valor Serv.", txtFornecedorValor),
-  ui_pair("Data Início:", txtInicio),
-  ui_pair("Data Fim:", txtFim),
-  ui_pair("Local:", txtLocal),
-  NULL);
- ui_style_form(rows);
- Ihandle *filt_row=IupHbox(ui_pair("Filtro Início:", txtFiltroInicio), ui_pair("Filtro Fim:", txtFiltroFim), NULL);
- ui_style_form(filt_row);
- Ihandle *btn_row=IupHbox(IupFill(), btnNovo, btnSalvar, btnAprovar, btnFinalizar, btnExcluir, btnAtualizar, btnExportar, IupFill(), NULL);
- Ihandle *form=IupVbox(IupLabel("Orçamentos e Gestão de Eventos"), rows, filt_row, btn_row, IupSetAttributes(IupFrame(mat_evento), "TITLE=Lista de Eventos"), NULL); ui_style_form(form);
- /* atributos para callbacks (usar handles) */
- const char* names[]={"txtId","txtCliente","txtRecurso","txtRecursoQtd","txtEquipe","txtEquipeHoras","txtFornecedor","txtFornecedorValor","txtInicio","txtFim","txtLocal","txtFiltroInicio","txtFiltroFim"}; Ihandle* widgets[]={txtId,txtCliente,txtRecurso,txtRecursoQtd,txtEquipe,txtEquipeHoras,txtFornecedor,txtFornecedorValor,txtInicio,txtFim,txtLocal,txtFiltroInicio,txtFiltroFim};
- for(int i=0;i<13;i++){
-   IupSetAttributeHandle(btnNovo,names[i],widgets[i]);
-   IupSetAttributeHandle(btnSalvar,names[i],widgets[i]);
-   IupSetAttributeHandle(btnAprovar,names[i],widgets[i]);
-   IupSetAttributeHandle(btnFinalizar,names[i],widgets[i]);
-   IupSetAttributeHandle(btnExcluir,names[i],widgets[i]);
-   IupSetAttributeHandle(btnAtualizar,names[i],widgets[i]);
-   IupSetAttributeHandle(btnExportar,names[i],widgets[i]);
-   /* também anexa ao matrix para o evento de clique */
-   IupSetAttributeHandle(mat_evento,names[i],widgets[i]);
- }
- IupSetCallback(btnNovo, "ACTION", (Icallback)evento_novo_cb); IupSetCallback(btnSalvar, "ACTION", (Icallback)evento_salvar_cb); IupSetCallback(btnAprovar, "ACTION", (Icallback)evento_aprovar_cb); IupSetCallback(btnFinalizar, "ACTION", (Icallback)evento_finalizar_cb); IupSetCallback(btnExcluir, "ACTION", (Icallback)evento_excluir_cb); IupSetCallback(btnAtualizar, "ACTION", (Icallback)evento_atualizar_cb); IupSetCallback(btnExportar, "ACTION", (Icallback)evento_exportar_cb); IupSetCallback(mat_evento, "CLICK_CB", (Icallback)evento_click_cb);
- evento_view_recarregar(mat_evento);
- return form; }
+// =============================================================================
+// Callbacks
+// =============================================================================
 
-void evento_view_mostrar(void){ if(!dlg_evento){ dlg_evento=IupDialog(evento_view_create()); IupSetAttribute(dlg_evento,"TITLE","Eventos"); IupSetAttribute(dlg_evento,"SIZE","960x560"); } IupShowXY(dlg_evento,IUP_CENTER,IUP_CENTER); }
+static int evento_novo_cb(Ihandle *self) {
+    edit_id = 0;
+    IupSetAttribute(txt_nome, "VALUE", "");
+    IupSetAttribute(txt_data_ini, "VALUE", "");
+    IupSetAttribute(txt_data_fim, "VALUE", "");
+    IupSetAttribute(drop_cliente, "VALUE", "0");
+    IupSetAttribute(drop_operador, "VALUE", "0");
+    IupSetAttribute(lbl_total_est_val, "TITLE", "R$ 0.00");
+    IupSetAttribute(lbl_total_final_val, "TITLE", "R$ 0.00");
+
+    limpar_matriz(mat_recursos);
+    limpar_matriz(mat_equipes);
+    limpar_matriz(mat_fornecedores);
+
+    const char *active = "YES";
+    IupSetAttribute(txt_nome, "ACTIVE", active);
+    IupSetAttribute(txt_data_ini, "ACTIVE", active);
+    IupSetAttribute(txt_data_fim, "ACTIVE", active);
+    IupSetAttribute(drop_cliente, "ACTIVE", active);
+    IupSetAttribute(drop_operador, "ACTIVE", active);
+    
+    IupSetAttribute(IupGetParent(lstRecurso), "ACTIVE", active);
+    IupSetAttribute(IupGetParent(lstEquipe), "ACTIVE", active);
+    IupSetAttribute(IupGetParent(lstFornecedor), "ACTIVE", active);
+
+    IupSetFocus(txt_nome);
+    return IUP_DEFAULT;
+}
+
+static int evento_salvar_cb(Ihandle *self) {
+    char *nome = IupGetAttribute(txt_nome, "VALUE");
+    char *data_ini = IupGetAttribute(txt_data_ini, "VALUE");
+    char *data_fim = IupGetAttribute(txt_data_fim, "VALUE");
+    int cliente_idx = IupGetInt(drop_cliente, "VALUE");
+    int operador_idx = IupGetInt(drop_operador, "VALUE");
+
+    if (!nome || !data_ini || !data_fim || strlen(nome) == 0 || strlen(data_ini) < 10 || strlen(data_fim) < 10 || cliente_idx < 1 || operador_idx < 1) {
+        IupMessage("Erro", "Preencha Nome, Datas, Cliente e Operador.");
+        return IUP_DEFAULT;
+    }
+
+    Evento e = {0};
+    e.id = edit_id;
+    strncpy(e.nome, nome, sizeof(e.nome) - 1);
+    e.nome[sizeof(e.nome) - 1] = '\0';
+    // Normaliza datas: troca '/' por '-'
+    for (int i = 0; data_ini[i]; ++i) if (data_ini[i] == '/') data_ini[i] = '-';
+    for (int i = 0; data_fim[i]; ++i) if (data_fim[i] == '/') data_fim[i] = '-';
+    strncpy(e.data_inicio, data_ini, sizeof(e.data_inicio) - 1);
+    e.data_inicio[sizeof(e.data_inicio) - 1] = '\0';
+    strncpy(e.data_fim, data_fim, sizeof(e.data_fim) - 1);
+    e.data_fim[sizeof(e.data_fim) - 1] = '\0';
+    e.local[0] = '\0'; /* inicializa local vazio */
+    e.tipo = EVENTO_TIPO_ORCAMENTO; /* sempre orçamento */
+    e.status = EVENTO_STATUS_ORCAMENTO; /* sempre status orçamento ao criar/editar */
+
+    /* recupera ids a partir do texto "id - nome" nas listas */
+    if (cliente_idx <= 0 || operador_idx <= 0 || cliente_idx > 256 || operador_idx > 256) {
+        IupMessage("Erro", "Índice de Cliente ou Operador inválido.");
+        return IUP_DEFAULT;
+    }
+    
+    char cli_idx_str[16], op_idx_str[16];
+    sprintf(cli_idx_str, "%d", cliente_idx);
+    sprintf(op_idx_str, "%d", operador_idx);
+    const char* cli_text = IupGetAttribute(drop_cliente, cli_idx_str);
+    const char* op_text  = IupGetAttribute(drop_operador, op_idx_str);
+    
+    if (!cli_text || !op_text) {
+        IupMessage("Erro", "Cliente ou Operador inválido.");
+        return IUP_DEFAULT;
+    }
+    
+    int cli_id = atoi(cli_text);
+    int op_id = atoi(op_text);
+    
+    if (cli_id <= 0 || op_id <= 0) {
+        IupMessage("Erro", "IDs de Cliente ou Operador inválidos.");
+        return IUP_DEFAULT;
+    }
+    
+    e.cliente_id  = cli_id;
+    e.operador_id = op_id;
+    e.produtora_id = 1;
+
+    int saved_id = evento_salvar(e);
+    if (saved_id == 0) {
+        IupMessage("Erro", "Falha ao salvar o evento principal.");
+        return IUP_DEFAULT;
+    }
+    
+    // Atualiza edit_id IMEDIATAMENTE para garantir correlação
+    edit_id = saved_id;
+
+    // Remove itens antigos e salva novos
+    pers_remover_evento_itens_por_evento(edit_id);
+    pers_remover_evento_equipes_por_evento(edit_id);
+    pers_remover_evento_fornecedores_por_evento(edit_id);
+
+    salvar_itens_matriz(mat_recursos, edit_id, 0);
+    salvar_itens_matriz(mat_equipes, edit_id, 1);
+    salvar_itens_matriz(mat_fornecedores, edit_id, 2);
+
+    // Recalcula totais após salvar associações
+    evento_recalcular_totais(edit_id);
+    if (evento_obter(edit_id, &e)) {
+        char buf[64];
+        sprintf(buf, "R$ %.2f", e.total_estimado);
+        IupSetAttribute(lbl_total_est_val, "TITLE", buf);
+        sprintf(buf, "R$ %.2f", e.total_final);
+        IupSetAttribute(lbl_total_final_val, "TITLE", buf);
+    }
+
+    evento_view_reload_main_matrix();
+    IupMessage("Sucesso", "Evento salvo com sucesso!");
+    return IUP_DEFAULT;
+}
+
+static int evento_excluir_cb(Ihandle *self) {
+    if (edit_id <= 0) {
+        IupMessage("Aviso", "Nenhum evento selecionado para excluir.");
+        return IUP_DEFAULT;
+    }
+    if (IupAlarm("Confirmação", "Deseja realmente excluir este evento e todas as suas associações?", "Sim", "Não", NULL) != 1) {
+        return IUP_DEFAULT;
+    }
+
+    pers_remover_evento_itens_por_evento(edit_id);
+    pers_remover_evento_equipes_por_evento(edit_id);
+    pers_remover_evento_fornecedores_por_evento(edit_id);
+    
+    if (evento_excluir(edit_id)) {
+        IupMessage("Sucesso", "Evento excluído.");
+        evento_novo_cb(NULL); // Limpa o formulário
+        evento_view_reload_main_matrix();
+    } else {
+        IupMessage("Erro", "Falha ao excluir o evento.");
+    }
+    return IUP_DEFAULT;
+}
+
+static void aplicar_regra_status(Evento *e);
+
+static int evento_aprovar_cb(Ihandle *self) {
+    if (edit_id <= 0) {
+        IupMessage("Aviso", "Selecione um evento para aprovar.");
+        return IUP_DEFAULT;
+    }
+
+    int ret = evento_aprovar(edit_id);
+    if (ret == 1) {
+        Evento e;
+        if (evento_obter(edit_id, &e)) {
+            char buf[64];
+            sprintf(buf, "R$ %.2f", e.total_estimado);
+            IupSetAttribute(lbl_total_est_val, "TITLE", buf);
+            aplicar_regra_status(&e);
+        }
+        IupMessage("Sucesso", "Evento aprovado com sucesso.");
+    } else if (ret == -2) {
+        IupMessage("Conflito", "Há conflito de recursos/equipes/fornecedores em eventos já aprovados no mesmo período.");
+    } else if (ret == -1) {
+        IupMessage("Aviso", "Este evento não está em status de orçamento.");
+    } else {
+        IupMessage("Erro", "Falha ao aprovar o evento.");
+    }
+
+    evento_view_reload_main_matrix();
+    return IUP_DEFAULT;
+}
+
+static int evento_finalizar_cb(Ihandle *self) {
+    if (edit_id <= 0) {
+        IupMessage("Aviso", "Selecione um evento para finalizar.");
+        return IUP_DEFAULT;
+    }
+
+    int ret = evento_finalizar(edit_id);
+    if (ret == 1) {
+        Evento e;
+        if (evento_obter(edit_id, &e)) {
+            char buf[64];
+            sprintf(buf, "R$ %.2f", e.total_estimado);
+            IupSetAttribute(lbl_total_est_val, "TITLE", buf);
+            sprintf(buf, "R$ %.2f", e.total_final);
+            IupSetAttribute(lbl_total_final_val, "TITLE", buf);
+            aplicar_regra_status(&e);
+        }
+        IupMessage("Sucesso", "Evento finalizado com sucesso.");
+    } else if (ret == -1) {
+        IupMessage("Aviso", "Somente eventos aprovados podem ser finalizados.");
+    } else {
+        IupMessage("Erro", "Falha ao finalizar o evento.");
+    }
+
+    evento_view_reload_main_matrix();
+    return IUP_DEFAULT;
+}
+
+static int matrix_click_cb(Ihandle *ih, int lin, int col) {
+    if (lin <= 0) return IUP_DEFAULT;
+    edit_id = IupGetIntId2(ih, "", lin, 1);
+    
+    Evento e;
+    if (evento_obter(edit_id, &e)) {
+        IupSetAttribute(txt_nome, "VALUE", e.nome);
+        IupSetAttribute(txt_data_ini, "VALUE", e.data_inicio);
+        IupSetAttribute(txt_data_fim, "VALUE", e.data_fim);
+        IupSetfAttribute(lbl_total_est_val, "TITLE", "R$ %.2f", e.total_estimado);
+        IupSetfAttribute(lbl_total_final_val, "TITLE", "R$ %.2f", e.total_final);
+
+        /* reposiciona combos de cliente e operador com base no id */
+        int total_cli = IupGetInt(drop_cliente, "COUNT");
+        for (int i = 2; i <= total_cli; i++) {
+            char idx_str[16];
+            sprintf(idx_str, "%d", i);
+            const char* txt = IupGetAttribute(drop_cliente, idx_str);
+            if (txt && atoi(txt) == e.cliente_id) {
+                IupSetInt(drop_cliente, "VALUE", i);
+                break;
+            }
+        }
+
+        int total_op = IupGetInt(drop_operador, "COUNT");
+        for (int i = 2; i <= total_op; i++) {
+            char idx_str[16];
+            sprintf(idx_str, "%d", i);
+            const char* txt = IupGetAttribute(drop_operador, idx_str);
+            if (txt && atoi(txt) == e.operador_id) {
+                IupSetInt(drop_operador, "VALUE", i);
+                break;
+            }
+        }
+
+        carregar_abas(edit_id);
+        aplicar_regra_status(&e);
+    }
+    return IUP_DEFAULT;
+}
+
+static void aplicar_regra_status(Evento *e) {
+    if (!e) return;
+
+    const char *atv_orc = "YES";
+    const char *atv_itens = "YES";
+
+    if (e->status == EVENTO_STATUS_APROVADO) {
+        atv_orc = "NO";   // orçamento travado
+        atv_itens = "NO"; // itens também
+    } else if (e->status == EVENTO_STATUS_FINALIZADO) {
+        atv_orc = "NO";
+        atv_itens = "NO";
+    }
+
+    IupSetAttribute(txt_nome, "ACTIVE", atv_orc);
+    IupSetAttribute(txt_data_ini, "ACTIVE", atv_orc);
+    IupSetAttribute(txt_data_fim, "ACTIVE", atv_orc);
+    IupSetAttribute(drop_cliente, "ACTIVE", atv_orc);
+    IupSetAttribute(drop_operador, "ACTIVE", atv_orc);
+
+    IupSetAttribute(IupGetParent(lstRecurso), "ACTIVE", atv_itens);
+    IupSetAttribute(IupGetParent(lstEquipe), "ACTIVE", atv_itens);
+    IupSetAttribute(IupGetParent(lstFornecedor), "ACTIVE", atv_itens);
+}
+
+// --- Callbacks das abas ---
+
+static int btn_recurso_add_cb(Ihandle *self) {
+    int sel_idx = IupGetInt(lstRecurso, "VALUE");
+    if (sel_idx <= 0) return IUP_DEFAULT;
+    
+    char idx_str[16];
+    sprintf(idx_str, "%d", sel_idx);
+    const char* item_text = IupGetAttribute(lstRecurso, idx_str);
+    if (!item_text) return IUP_DEFAULT;
+    
+    int item_id = atoi(item_text); /* formato: id - descricao */
+    if (item_id <= 0) return IUP_DEFAULT;
+    const char* qtd_str = IupGetAttribute(txtRecursoQtd, "VALUE");
+    int qtd = qtd_str ? atoi(qtd_str) : 0;
+    if (qtd <= 0) {
+        IupMessage("Erro", "A quantidade deve ser maior que zero.");
+        return IUP_DEFAULT;
+    }
+
+    int linhas = IupGetInt(mat_recursos, "NUMLIN");
+    const char* primeira_cel = IupGetAttributeId2(mat_recursos, "", 1, 1);
+    int nova_linha = (linhas == 1 && (!primeira_cel || primeira_cel[0] == '\0')) ? 1 : linhas + 1;
+
+    IupSetInt(mat_recursos, "NUMLIN", nova_linha);
+    IupSetIntId2(mat_recursos, "", nova_linha, 1, item_id);
+    IupSetStrAttributeId2(mat_recursos, "", nova_linha, 2, item_text);
+    IupSetIntId2(mat_recursos, "", nova_linha, 3, qtd);
+    IupSetAttribute(mat_recursos, "REDRAW", "ALL");
+    return IUP_DEFAULT;
+}
+
+static int btn_recurso_del_cb(Ihandle *self) {
+    int focus_lin = IupGetInt(mat_recursos, "FOCUS_CELL_LIN");
+    if (focus_lin > 0) {
+        IupSetAttributeId2(mat_recursos, "DELROW", focus_lin, 0, NULL);
+        if (IupGetInt(mat_recursos, "NUMLIN") == 0) {
+            limpar_matriz(mat_recursos);
+        }
+    }
+    return IUP_DEFAULT;
+}
+
+static int btn_equipe_add_cb(Ihandle *self) {
+    int sel_idx = IupGetInt(lstEquipe, "VALUE");
+    if (sel_idx <= 0) return IUP_DEFAULT;
+    
+    char idx_str[16];
+    sprintf(idx_str, "%d", sel_idx);
+    const char* item_text = IupGetAttribute(lstEquipe, idx_str);
+    if (!item_text) return IUP_DEFAULT;
+    
+    int item_id = atoi(item_text);
+    if (item_id <= 0) return IUP_DEFAULT;
+    const char* horas_str = IupGetAttribute(txtEquipeHoras, "VALUE");
+    double horas = horas_str ? atof(horas_str) : 0.0;
+    if (horas <= 0) {
+        IupMessage("Erro", "As horas devem ser maiores que zero.");
+        return IUP_DEFAULT;
+    }
+
+    int linhas = IupGetInt(mat_equipes, "NUMLIN");
+    const char* primeira_cel = IupGetAttributeId2(mat_equipes, "", 1, 1);
+    int nova_linha = (linhas == 1 && (!primeira_cel || primeira_cel[0] == '\0')) ? 1 : linhas + 1;
+
+    IupSetInt(mat_equipes, "NUMLIN", nova_linha);
+    IupSetIntId2(mat_equipes, "", nova_linha, 1, item_id);
+    IupSetStrAttributeId2(mat_equipes, "", nova_linha, 2, item_text);
+    IupSetfAttributeId2(mat_equipes, "", nova_linha, 3, "%.2f", horas);
+    IupSetAttribute(mat_equipes, "REDRAW", "ALL");
+    return IUP_DEFAULT;
+}
+
+static int btn_equipe_del_cb(Ihandle *self) {
+    int focus_lin = IupGetInt(mat_equipes, "FOCUS_CELL_LIN");
+    if (focus_lin > 0) {
+        IupSetAttributeId2(mat_equipes, "DELROW", focus_lin, 0, NULL);
+        if (IupGetInt(mat_equipes, "NUMLIN") == 0) {
+            limpar_matriz(mat_equipes);
+        }
+    }
+    return IUP_DEFAULT;
+}
+
+static int btn_fornecedor_add_cb(Ihandle *self) {
+    int sel_idx = IupGetInt(lstFornecedor, "VALUE");
+    if (sel_idx <= 0) return IUP_DEFAULT;
+    
+    char idx_str[16];
+    sprintf(idx_str, "%d", sel_idx);
+    const char* item_text = IupGetAttribute(lstFornecedor, idx_str);
+    if (!item_text) return IUP_DEFAULT;
+    
+    int item_id = atoi(item_text);
+    if (item_id <= 0) return IUP_DEFAULT;
+    const char* valor_str = IupGetAttribute(txtFornecedorValor, "VALUE");
+    double valor = valor_str ? atof(valor_str) : 0.0;
+    if (valor <= 0) {
+        IupMessage("Erro", "O valor deve ser maior que zero.");
+        return IUP_DEFAULT;
+    }
+
+    int linhas = IupGetInt(mat_fornecedores, "NUMLIN");
+    const char* primeira_cel = IupGetAttributeId2(mat_fornecedores, "", 1, 1);
+    int nova_linha = (linhas == 1 && (!primeira_cel || primeira_cel[0] == '\0')) ? 1 : linhas + 1;
+
+    IupSetInt(mat_fornecedores, "NUMLIN", nova_linha);
+    IupSetIntId2(mat_fornecedores, "", nova_linha, 1, item_id);
+    IupSetStrAttributeId2(mat_fornecedores, "", nova_linha, 2, item_text);
+    IupSetfAttributeId2(mat_fornecedores, "", nova_linha, 3, "%.2f", valor);
+    IupSetAttribute(mat_fornecedores, "REDRAW", "ALL");
+    return IUP_DEFAULT;
+}
+
+static int btn_fornecedor_del_cb(Ihandle *self) {
+    int focus_lin = IupGetInt(mat_fornecedores, "FOCUS_CELL_LIN");
+    if (focus_lin > 0) {
+        IupSetAttributeId2(mat_fornecedores, "DELROW", focus_lin, 0, NULL);
+        if (IupGetInt(mat_fornecedores, "NUMLIN") == 0) {
+            limpar_matriz(mat_fornecedores);
+        }
+    }
+    return IUP_DEFAULT;
+}
+
+// =============================================================================
+// Funções de Construção da UI
+// =============================================================================
+
+static void carregar_abas(int evento_id) {
+    limpar_matriz(mat_recursos);
+    limpar_matriz(mat_equipes);
+    limpar_matriz(mat_fornecedores);
+
+    if (evento_id <= 0 || !mat_recursos || !mat_equipes || !mat_fornecedores) return;
+
+    // Carregar Recursos
+    EventoItem itens[256];
+    int n_itens = pers_carregar_evento_itens(itens, 256);
+    int linha_rec = 0;
+    for (int i = 0; i < n_itens; i++) {
+        if (itens[i].evento_id == evento_id) {
+            Recurso r;
+            if (recurso_obter(itens[i].recurso_id, &r)) {
+                linha_rec++;
+                IupSetInt(mat_recursos, "NUMLIN", linha_rec);
+                IupSetIntId2(mat_recursos, "", linha_rec, 1, r.id);
+                IupSetStrAttributeId2(mat_recursos, "", linha_rec, 2, r.descricao);
+                IupSetIntId2(mat_recursos, "", linha_rec, 3, itens[i].quantidade);
+            }
+        }
+    }
+
+    // Carregar Equipes
+    EventoEquipe equipes[128];
+    int n_eq = pers_carregar_evento_equipes(equipes, 128);
+    int linha_eq = 0;
+    for (int i = 0; i < n_eq; i++) {
+        if (equipes[i].evento_id == evento_id) {
+            Equipe e;
+            if (equipe_obter(equipes[i].equipe_id, &e)) {
+                linha_eq++;
+                IupSetInt(mat_equipes, "NUMLIN", linha_eq);
+                IupSetIntId2(mat_equipes, "", linha_eq, 1, e.id);
+                IupSetStrAttributeId2(mat_equipes, "", linha_eq, 2, e.nome);
+                IupSetfAttributeId2(mat_equipes, "", linha_eq, 3, "%.2f", equipes[i].horas_trabalhadas);
+            }
+        }
+    }
+
+    // Carregar Fornecedores
+    EventoFornecedor fornecedores[128];
+    int n_for = pers_carregar_evento_fornecedores(fornecedores, 128);
+    int linha_for = 0;
+    for (int i = 0; i < n_for; i++) {
+        if (fornecedores[i].evento_id == evento_id) {
+            Fornecedor f;
+            if (fornecedor_obter(fornecedores[i].fornecedor_id, &f)) {
+                linha_for++;
+                IupSetInt(mat_fornecedores, "NUMLIN", linha_for);
+                IupSetIntId2(mat_fornecedores, "", linha_for, 1, f.id);
+                IupSetStrAttributeId2(mat_fornecedores, "", linha_for, 2, f.nome_fantasia);
+                IupSetfAttributeId2(mat_fornecedores, "", linha_for, 3, "%.2f", fornecedores[i].valor_servico);
+            }
+        }
+    }
+}
+
+static void evento_view_reload_main_matrix(void) {
+    if (!mat_main) return;
+    Evento eventos[1024];
+    int n = evento_listar(eventos, 1024);
+    printf("[DEBUG] evento_view_reload_main_matrix: n=%d\n", n);
+    IupSetInt(mat_main, "NUMLIN", n > 0 ? n : 1);
+
+    if (n <= 0) {
+        limpar_matriz(mat_main);
+        IupSetAttribute(mat_main, "REDRAW", "ALL");
+        return;
+    }
+
+    Cliente clientes[256];
+    int n_cli = cliente_listar(clientes, 256);
+    printf("[DEBUG] clientes carregados: %d\n", n_cli);
+
+    for (int i = 0; i < n; i++) {
+        int lin = i + 1;
+        IupSetIntId2(mat_main, "", lin, 1, eventos[i].id);
+        char cli_nome[100] = "(não encontrado)";
+        for (int j = 0; j < n_cli; j++) {
+            if (clientes[j].id == eventos[i].cliente_id) {
+                strncpy(cli_nome, clientes[j].nome, sizeof(cli_nome) - 1);
+                cli_nome[sizeof(cli_nome)-1] = '\0';
+                break;
+            }
+        }
+        IupSetStrAttributeId2(mat_main, "", lin, 2, eventos[i].nome);
+        IupSetStrAttributeId2(mat_main, "", lin, 3, cli_nome);
+        IupSetStrAttributeId2(mat_main, "", lin, 4, eventos[i].data_inicio);
+        IupSetStrAttributeId2(mat_main, "", lin, 5, eventos[i].data_fim);
+        IupSetfAttributeId2(mat_main, "", lin, 6, "R$ %.2f", eventos[i].total_estimado);
+        IupSetStrAttributeId2(mat_main, "", lin, 7, evento_status_para_str(eventos[i].status));
+        printf("[DEBUG] Linha %d - ID=%d Nome=%s Cliente=%s Total=%.2f Status=%d\n", lin, eventos[i].id, eventos[i].nome, cli_nome, eventos[i].total_estimado, eventos[i].status);
+    }
+    IupSetAttribute(mat_main, "REDRAW", "ALL");
+}
+
+static Ihandle* evento_view_create(void) {
+    // Formulário Principal
+    txt_nome = IupText(NULL);
+    txt_data_ini = IupDatePick();
+    txt_data_fim = IupDatePick();
+    drop_cliente = IupList(NULL);
+    drop_operador = IupList(NULL);
+    lbl_total_est_text = IupLabel("Total Estimado:");
+    lbl_total_est_val  = IupLabel("R$ 0.00");
+    lbl_total_final_text = IupLabel("Total Final:");
+    lbl_total_final_val  = IupLabel("R$ 0.00");
+    // Fontes ajustadas (padronização <= 12, destaque moderado nos valores)
+    IupSetAttribute(lbl_total_est_text, "FONT", "Arial, Bold 11");
+    IupSetAttribute(lbl_total_final_text, "FONT", "Arial, Bold 11");
+    IupSetAttribute(lbl_total_est_val, "FONT", "Arial, Bold 12");
+    IupSetAttribute(lbl_total_final_val, "FONT", "Arial, Bold 12");
+    IupSetAttribute(lbl_total_est_val, "RASTERSIZE", "160x24");
+    IupSetAttribute(lbl_total_final_val, "RASTERSIZE", "160x24");
+    IupSetAttribute(lbl_total_est_val, "FGCOLOR", "0 80 0");
+    IupSetAttribute(lbl_total_final_val, "FGCOLOR", "0 0 120");
+
+    IupSetAttribute(txt_data_ini, "MASK", "2000-99-99");
+    IupSetAttribute(txt_data_fim, "MASK", "2000-99-99");
+    IupSetAttributes(drop_cliente, "DROPDOWN=YES, VISIBLE_ITEMS=5");
+    IupSetAttributes(drop_operador, "DROPDOWN=YES, VISIBLE_ITEMS=5");
+
+    // Aba de Recursos
+    lstRecurso = IupList(NULL);
+    txtRecursoQtd = IupText(NULL);
+    IupSetAttributes(lstRecurso, "DROPDOWN=YES, VISIBLE_ITEMS=5");
+    IupSetAttribute(txtRecursoQtd, "MASK", IUP_MASK_UINT);
+    mat_recursos = IupMatrix(NULL);
+    IupSetAttributes(mat_recursos, "NUMCOL=3, NUMLIN=1, RESIZEMATRIX=YES, EXPAND=YES");
+    IupSetAttributes(mat_recursos, "0:1=ID, 0:2=Recurso, 0:3=Qtd");
+
+    // Aba de Equipes
+    lstEquipe = IupList(NULL);
+    txtEquipeHoras = IupText(NULL);
+    IupSetAttributes(lstEquipe, "DROPDOWN=YES, VISIBLE_ITEMS=5");
+    IupSetAttribute(txtEquipeHoras, "MASK", IUP_MASK_FLOAT);
+    mat_equipes = IupMatrix(NULL);
+    IupSetAttributes(mat_equipes, "NUMCOL=3, NUMLIN=1, RESIZEMATRIX=YES, EXPAND=YES");
+    IupSetAttributes(mat_equipes, "0:1=ID, 0:2=Equipe, 0:3=Horas");
+
+    // Aba de Fornecedores
+    lstFornecedor = IupList(NULL);
+    txtFornecedorValor = IupText(NULL);
+    IupSetAttributes(lstFornecedor, "DROPDOWN=YES, VISIBLE_ITEMS=5");
+    IupSetAttribute(txtFornecedorValor, "MASK", IUP_MASK_FLOAT);
+    mat_fornecedores = IupMatrix(NULL);
+    IupSetAttributes(mat_fornecedores, "NUMCOL=3, NUMLIN=1, RESIZEMATRIX=YES, EXPAND=YES");
+    IupSetAttributes(mat_fornecedores, "0:1=ID, 0:2=Fornecedor, 0:3=Valor (R$)");
+
+    // Montagem das Abas
+    Ihandle *btn_rec_add  = IupButton("Add", NULL);
+    Ihandle *btn_rec_del  = IupButton("Del", NULL);
+    Ihandle *btn_eqp_add  = IupButton("Add", NULL);
+    Ihandle *btn_eqp_del  = IupButton("Del", NULL);
+    Ihandle *btn_forn_add = IupButton("Add", NULL);
+    Ihandle *btn_forn_del = IupButton("Del", NULL);
+
+    Ihandle *toolbar_rec = IupHbox(ui_pair("Recurso:", lstRecurso), ui_pair("Qtd:", txtRecursoQtd), btn_rec_add, btn_rec_del, NULL);
+    Ihandle *toolbar_eqp = IupHbox(ui_pair("Equipe:", lstEquipe), ui_pair("Horas:", txtEquipeHoras), btn_eqp_add, btn_eqp_del, NULL);
+    Ihandle *toolbar_forn = IupHbox(ui_pair("Fornecedor:", lstFornecedor), ui_pair("Valor:", txtFornecedorValor), btn_forn_add, btn_forn_del, NULL);
+    
+    Ihandle *tab_recursos = IupVbox(toolbar_rec, mat_recursos, NULL);
+    Ihandle *tab_equipes = IupVbox(toolbar_eqp, mat_equipes, NULL);
+    Ihandle *tab_fornecedores = IupVbox(toolbar_forn, mat_fornecedores, NULL);
+
+    Ihandle *tabs = IupTabs(tab_recursos, tab_equipes, tab_fornecedores, NULL);
+    IupSetAttribute(tab_recursos, "TABTITLE", "Recursos");
+    IupSetAttribute(tab_equipes, "TABTITLE", "Equipes");
+    IupSetAttribute(tab_fornecedores, "TABTITLE", "Fornecedores");
+
+    // Matriz Principal
+    mat_main = IupMatrix(NULL);
+    IupSetAttributes(mat_main, "NUMCOL=7, NUMLIN=1, EXPAND=YES, RESIZEMATRIX=YES");
+    IupSetAttributes(mat_main, "0:1=ID, 0:2=Nome, 0:3=Cliente, 0:4=Início, 0:5=Fim, 0:6=Total Est., 0:7=Status");
+    IupSetAttributes(mat_main, "WIDTH1=40, WIDTH3=150, RASTERWIDTH2=200");
+
+    // Botões
+    Ihandle *btn_novo = IupButton("Novo", NULL);
+    Ihandle *btn_salvar = IupButton("Salvar", NULL);
+    Ihandle *btn_aprovar = IupButton("Aprovar", NULL);
+    Ihandle *btn_finalizar = IupButton("Finalizar", NULL);
+    Ihandle *btn_excluir = IupButton("Excluir", NULL);
+
+    // Layout
+    Ihandle* form_grid = IupGridBox(
+        IupLabel("Nome:"), txt_nome, IupLabel("Início:"), txt_data_ini,
+        IupLabel("Fim:"), txt_data_fim, IupLabel("Cliente:"), drop_cliente,
+        IupLabel("Operador:"), drop_operador,
+        lbl_total_est_text, lbl_total_est_val, lbl_total_final_text, lbl_total_final_val,
+        NULL);
+    IupSetAttribute(form_grid, "NUMCOL", "4");
+    IupSetAttribute(form_grid, "GAPLIN", "5");
+    IupSetAttribute(form_grid, "GAPCOL", "5");
+    
+    Ihandle *botoes_form = IupHbox(IupFill(), btn_novo, btn_salvar, btn_aprovar, btn_finalizar, btn_excluir, NULL);
+    Ihandle *vbox_left = IupVbox(form_grid, IupSetAttributes(IupFrame(tabs), "TITLE=Itens do Evento"), botoes_form, NULL);
+    Ihandle *vbox_right = IupVbox(IupSetAttributes(IupFrame(mat_main), "TITLE=Lista de Eventos"), NULL);
+    Ihandle *hbox_main = IupHbox(vbox_left, vbox_right, NULL);
+    IupSetAttribute(hbox_main, "MARGIN", "5x5");
+    IupSetAttribute(hbox_main, "GAP", "5");
+
+    // Callbacks
+    IupSetCallback(btn_rec_add,  "ACTION", (Icallback)btn_recurso_add_cb);
+    IupSetCallback(btn_rec_del,  "ACTION", (Icallback)btn_recurso_del_cb);
+    IupSetCallback(btn_eqp_add,  "ACTION", (Icallback)btn_equipe_add_cb);
+    IupSetCallback(btn_eqp_del,  "ACTION", (Icallback)btn_equipe_del_cb);
+    IupSetCallback(btn_forn_add, "ACTION", (Icallback)btn_fornecedor_add_cb);
+    IupSetCallback(btn_forn_del, "ACTION", (Icallback)btn_fornecedor_del_cb);
+    IupSetCallback(mat_main, "CLICK_CB", (Icallback)matrix_click_cb);
+    IupSetCallback(btn_novo, "ACTION", (Icallback)evento_novo_cb);
+    IupSetCallback(btn_salvar, "ACTION", (Icallback)evento_salvar_cb);
+    IupSetCallback(btn_aprovar, "ACTION", (Icallback)evento_aprovar_cb);
+    IupSetCallback(btn_finalizar, "ACTION", (Icallback)evento_finalizar_cb);
+    IupSetCallback(btn_excluir, "ACTION", (Icallback)evento_excluir_cb);
+
+    return hbox_main;
+}
+
+void evento_view_mostrar(void) {
+    if (!dialog) {
+        dialog = IupDialog(evento_view_create());
+        IupSetAttribute(dialog, "TITLE", "Gestão de Eventos");
+        // tamanho mais contido; deixa o usuário redimensionar depois
+        IupSetAttribute(dialog, "SIZE", "900x550");
+        IupSetAttribute(dialog, "RESIZE", "YES");
+        IupSetAttribute(dialog, "MAXBOX", "YES");
+    }
+    repopular_dropdowns();
+    evento_view_reload_main_matrix();
+    IupShowXY(dialog, IUP_CENTER, IUP_CENTER);
+}

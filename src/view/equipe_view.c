@@ -146,7 +146,9 @@ void equipe_view_mostrar(void) {
     if (!dlg_equipe) {
         dlg_equipe = IupDialog(equipe_view_create());
         IupSetAttribute(dlg_equipe, "TITLE", "Cadastro de Equipe");
-        IupSetAttribute(dlg_equipe, "SIZE", "720x520");
+        IupSetAttribute(dlg_equipe, "SIZE", "660x500");
+        IupSetAttribute(dlg_equipe, "RESIZE", "YES");
+        IupSetAttribute(dlg_equipe, "MAXBOX", "YES");
     }
     IupShowXY(dlg_equipe, IUP_CENTER, IUP_CENTER);
 }

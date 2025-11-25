@@ -10,7 +10,7 @@
 static Ihandle *dlg_produtora = NULL;
 static Ihandle *mat_prod = NULL;
 
-/* forward declaration for early use */
+/* declaração prévia para uso inicial */
 static void produtora_recarregar_matriz(Ihandle *mat);
 
 static int produtora_salvar_wrap_cb(Ihandle *self) {
@@ -31,7 +31,7 @@ static int produtora_salvar_wrap_cb(Ihandle *self) {
 static void produtora_recarregar_matriz(Ihandle *mat) {
     Produtora p; int has = produtora_obter(&p);
     IupSetAttribute(mat, "NUMCOL", "10");
-    /* clear lines to avoid stale garbage */
+    /* limpar linhas para evitar lixo residual */
     IupSetAttribute(mat, "NUMLIN", "0");
     IupSetAttribute(mat, "NUMLIN", "1");
     IupSetAttribute(mat, "0:1", "Nome Fantasia");
@@ -44,7 +44,7 @@ static void produtora_recarregar_matriz(Ihandle *mat) {
     IupSetAttribute(mat, "0:8", "Responsável");
     IupSetAttribute(mat, "0:9", "Tel. Resp.");
     IupSetAttribute(mat, "0:10", "Margem %");
-    /* initialize row with empty strings to avoid garbage when no data */
+    /* inicializar linha com strings vazias para evitar lixo quando não há dados */
     for (int c = 1; c <= 10; c++) {
         IupSetStrAttributeId2(mat, "", 1, c, "");
     }
@@ -113,7 +113,7 @@ static Ihandle* produtora_view_create(void) {
     Ihandle *tTelResp = IupText(NULL);
     Ihandle *tMargem = IupText(NULL);
 
-    /* ensure clean initial values */
+    /* garantir valores iniciais limpos */
     IupSetAttribute(tNF, "VALUE", "");
     IupSetAttribute(tRS, "VALUE", "");
     IupSetAttribute(tIE, "VALUE", "");
@@ -239,7 +239,7 @@ static Ihandle* produtora_view_create(void) {
     IupSetCallback(mat_prod, "CLICK_CB", (Icallback)produtora_click_cb);
 
     produtora_recarregar_matriz(mat_prod);
-    /* auto-load saved data into fields if present */
+    /* carregar automaticamente os dados salvos nos campos, se existirem */
     produtora_carregar_cb(btnCarregar);
     return form;
 }

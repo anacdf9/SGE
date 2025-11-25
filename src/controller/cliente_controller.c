@@ -1,3 +1,15 @@
+/*
+===============================================================================
+   CLIENTE CONTROLLER
+   
+   Responsável por:
+   - Gerenciar cadastro de clientes
+   - Gerar IDs automáticos
+   - Validar dados antes de salvar
+   - Callbacks para interface gráfica
+===============================================================================
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +17,12 @@
 #include "../model/pers.h"
 #include "cliente_controller.h"
 
-/* Gerador simples: próximo ID = max(id)+1 */
+
+/* ========================================
+   FUNÇÕES AUXILIARES
+   ======================================== */
+
+// Gera o próximo ID disponível (máximo ID atual + 1)
 static int cliente_next_id(void) {
     Cliente lista[1024];
     int n = pers_carregar_clientes(lista, 1024);
@@ -14,7 +31,12 @@ static int cliente_next_id(void) {
     return maxid + 1;
 }
 
-/* Salva/atualiza cliente com autogeracao de ID */
+
+/* ========================================
+   FUNÇÕES PRINCIPAIS
+   ======================================== */
+
+// Salva ou atualiza um cliente (ID gerado automaticamente se necessário)
 int cliente_salvar(Cliente c) {
     if (c.id <= 0) {
         c.id = cliente_next_id();
@@ -33,9 +55,12 @@ int cliente_listar(Cliente *buffer, int max) {
     return pers_carregar_clientes(buffer, max);
 }
 
-/* === CALLBACKS (usadas pelo IUP) === */
 
-/* Callback do botão Salvar */
+/* ========================================
+   CALLBACKS PARA INTERFACE GRÁFICA (IUP)
+   ======================================== */
+
+// Callback do botão Salvar - captura dados do formulário e salva
 int cliente_salvar_cb(Ihandle *self) {
     
     // Pega os 'handles' (ponteiros) dos campos de texto que a view associou

@@ -1,5 +1,6 @@
 #include "ui_common.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 static void set_label_std(Ihandle* lbl) {
   IupSetAttribute(lbl, "ALIGNMENT", "ARIGHT:ACENTER");
@@ -44,4 +45,18 @@ Ihandle* ui_buttons_right(Ihandle* b1, Ihandle* b2, Ihandle* b3) {
 
 Ihandle* ui_buttons_center(Ihandle* b1, Ihandle* b2, Ihandle* b3) {
   return IupHbox(IupFill(), b1, b2, b3, IupFill(), NULL);
+}
+
+void ui_find_and_set_item_by_id(Ihandle* list, int id) {
+  if (!list || id <= 0) return;
+  int count = IupGetInt(list, "COUNT");
+  for (int i = 1; i <= count; i++) {
+    const char* id_str = IupGetAttributeId(list, "ID_%d", i);
+    if (id_str && atoi(id_str) == id) {
+      char buf[16];
+      sprintf(buf, "%d", i);
+      IupSetAttribute(list, "VALUE", buf);
+      return;
+    }
+  }
 }

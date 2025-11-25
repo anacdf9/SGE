@@ -109,7 +109,9 @@ void operador_view_mostrar(void) {
     if (!dlg_operador) {
         dlg_operador = IupDialog(operador_view_create());
         IupSetAttribute(dlg_operador, "TITLE", "Cadastro de Operadores");
-        IupSetAttribute(dlg_operador, "SIZE", "760x420");
+        IupSetAttribute(dlg_operador, "SIZE", "640x400");
+        IupSetAttribute(dlg_operador, "RESIZE", "YES");
+        IupSetAttribute(dlg_operador, "MAXBOX", "YES");
     }
     IupShowXY(dlg_operador, IUP_CENTER, IUP_CENTER);
 }
