@@ -6,6 +6,7 @@
 #include "pers_texto.h"
 #include "pers_binario.h"
 #include "evento.h"
+#include "transacoes.h"
 
 static TipoPersistencia tipo_atual = TIPO_PERSISTENCIA;
 
@@ -183,3 +184,99 @@ int pers_remover_evento(int id) {
     if (tipo_atual == PERS_BINARIO) return pers_binario_remover_evento(id);
     return 0;
 }
+
+/* ===== EventoItem (múltiplos recursos por evento) ===== */
+int pers_salvar_evento_item(EventoItem it) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_evento_item(it);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_evento_item(it);
+    if (tipo_atual == PERS_BINARIO) return 0; /* não implementado em binário */
+    return 0;
+}
+
+int pers_carregar_evento_itens(EventoItem *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_evento_itens(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_evento_itens(lista, max);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+int pers_remover_evento_itens_por_evento(int evento_id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_evento_itens_por_evento(evento_id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_evento_itens_por_evento(evento_id);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+/* ===== EventoEquipe (múltiplas equipes por evento) ===== */
+int pers_salvar_evento_equipe(EventoEquipe ee) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_evento_equipe(ee);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_evento_equipe(ee);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+int pers_carregar_evento_equipes(EventoEquipe *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_evento_equipes(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_evento_equipes(lista, max);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+int pers_remover_evento_equipes_por_evento(int evento_id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_evento_equipes_por_evento(evento_id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_evento_equipes_por_evento(evento_id);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+/* ===== EventoFornecedor (múltiplos fornecedores por evento) ===== */
+int pers_salvar_evento_fornecedor(EventoFornecedor ef) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_salvar_evento_fornecedor(ef);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_salvar_evento_fornecedor(ef);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+int pers_carregar_evento_fornecedores(EventoFornecedor *lista, int max) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_carregar_evento_fornecedores(lista, max);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_carregar_evento_fornecedores(lista, max);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+int pers_remover_evento_fornecedores_por_evento(int evento_id) {
+    if (tipo_atual == PERS_MEMORIA) return pers_memoria_remover_evento_fornecedores_por_evento(evento_id);
+    if (tipo_atual == PERS_TEXTO)   return pers_texto_remover_evento_fornecedores_por_evento(evento_id);
+    if (tipo_atual == PERS_BINARIO) return 0;
+    return 0;
+}
+
+/* ===== Caixa ===== */
+int pers_salvar_caixa(CaixaLancamento l){
+    if (tipo_atual == PERS_TEXTO) return pers_texto_salvar_caixa(l);
+    return 0;
+}
+int pers_carregar_caixa(CaixaLancamento *lista,int max){
+    if (tipo_atual == PERS_TEXTO) return pers_texto_carregar_caixa(lista,max);
+    return 0;
+}
+
+/* ===== Contas a Receber ===== */
+int pers_salvar_conta_receber(ContaReceber c){
+    if (tipo_atual == PERS_TEXTO) return pers_texto_salvar_conta_receber(c);
+    return 0;
+}
+int pers_carregar_contas_receber(ContaReceber *lista,int max){
+    if (tipo_atual == PERS_TEXTO) return pers_texto_carregar_contas_receber(lista,max);
+    return 0;
+}
+
+/* ===== Compras ===== */
+int pers_salvar_compra(Compra c){ if(tipo_atual==PERS_TEXTO) return pers_texto_salvar_compra(c); return 0; }
+int pers_carregar_compras(Compra *lista,int max){ if(tipo_atual==PERS_TEXTO) return pers_texto_carregar_compras(lista,max); return 0; }
+int pers_salvar_compra_item(CompraItem it){ if(tipo_atual==PERS_TEXTO) return pers_texto_salvar_compra_item(it); return 0; }
+int pers_carregar_compra_itens_por_compra(int compra_id, CompraItem *lista,int max){ if(tipo_atual==PERS_TEXTO) return pers_texto_carregar_compra_itens_por_compra(compra_id,lista,max); return 0; }
+
+/* ===== Contas a Pagar ===== */
+int pers_salvar_conta_pagar(ContaPagar c){ if(tipo_atual==PERS_TEXTO) return pers_texto_salvar_conta_pagar(c); return 0; }
+int pers_carregar_contas_pagar(ContaPagar *lista,int max){ if(tipo_atual==PERS_TEXTO) return pers_texto_carregar_contas_pagar(lista,max); return 0; }

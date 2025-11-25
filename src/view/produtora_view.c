@@ -248,7 +248,9 @@ void produtora_view_mostrar(void) {
     if (!dlg_produtora) {
         dlg_produtora = IupDialog(produtora_view_create());
         IupSetAttribute(dlg_produtora, "TITLE", "Produtora de Eventos");
-        IupSetAttribute(dlg_produtora, "SIZE", "700x420");
+        IupSetAttribute(dlg_produtora, "SIZE", "640x440");
+        IupSetAttribute(dlg_produtora, "RESIZE", "YES");
+        IupSetAttribute(dlg_produtora, "MAXBOX", "YES");
     }
     IupShowXY(dlg_produtora, IUP_CENTER, IUP_CENTER);
 }

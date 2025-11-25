@@ -1,7 +1,22 @@
+/*
+ * ========================================================================
+ * SISTEMA DE GESTÃO DE EVENTOS (SGE)
+ * ========================================================================
+ * Descrição: Sistema completo para gerenciamento de eventos, incluindo
+ *           cadastros, orçamentos e controle financeiro
+ * 
+ * Módulos:
+ *   - Cadastros (Clientes, Equipes, Recursos, Fornecedores, etc)
+ *   - Orçamentos e Eventos
+ *   - Transações Financeiras
+ * ========================================================================
+ */
+
 #include <iup.h>
 #include <iupcontrols.h> 
 #include <stdlib.h>  
 
+/* Includes das Views (Interfaces) */
 #include "src/view/cliente_view.h"
 #include "src/view/equipe_view.h"
 #include "src/view/recurso_view.h"
@@ -9,56 +24,99 @@
 #include "src/view/operador_view.h"
 #include "src/view/produtora_view.h"
 #include "src/view/evento_view.h"
+#include "src/view/transacoes_view.h"
+
+/* Includes de Configuração */
 #include "src/config.h"
 #include "src/model/pers.h"
 
-/* Callback para o menu "Clientes" */
+/* ========================================================================
+ * FUNÇÕES DE CALLBACK (AÇÕES DOS MENUS)
+ * ======================================================================== */
+
+/*
+ * Abre a tela de cadastro de Clientes
+ */
 int btn_abrir_clientes_cb(void) {
     cliente_view_mostrar(); 
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de cadastro de Equipes
+ */
 int btn_abrir_equipe_cb(void) {
     equipe_view_mostrar();
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de cadastro de Recursos/Equipamentos
+ */
 int btn_abrir_recursos_cb(void) {
     recurso_view_mostrar();
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de cadastro de Fornecedores
+ */
 int btn_abrir_fornecedores_cb(void) {
     fornecedor_view_mostrar();
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de cadastro de Operadores do Sistema
+ */
 int btn_abrir_operadores_cb(void) {
     operador_view_mostrar();
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de cadastro da Produtora
+ */
 int btn_abrir_produtora_cb(void) {
     produtora_view_mostrar();
     return IUP_DEFAULT;
 }
 
+/*
+ * Abre a tela de Orçamentos e Eventos
+ */
 int btn_abrir_eventos_cb(void) {
     evento_view_mostrar();
     return IUP_DEFAULT;
 }
 
-/* Callback para o menu "Sair" */
-int btn_sair_cb(void) {
-    return IUP_CLOSE; // Comando do IUP para fechar o MainLoop
+/*
+ * Abre a tela de Transações Financeiras
+ */
+int btn_abrir_transacoes_cb(void) {
+    transacoes_view_mostrar();
+    return IUP_DEFAULT;
 }
 
+/*
+ * Fecha o sistema
+ */
+int btn_sair_cb(void) {
+    return IUP_CLOSE;
+}
+
+/* ========================================================================
+ * FUNÇÃO PRINCIPAL
+ * ======================================================================== */
+
 int main(int argc, char **argv) {
+    /* Inicializar biblioteca IUP (interface gráfica) */
     IupOpen(&argc, &argv);
-    IupControlsOpen(); // <-- Essa função precisa do <iupcontrols.h>
+    IupControlsOpen();
     IupSetGlobal("UTF8MODE", "YES");
     IupSetGlobal("UTF8MODE_FILE", "YES");
 
+    /* Inicializar sistema de persistência (banco de dados) */
     pers_inicializar(TIPO_PERSISTENCIA);
 
     Ihandle *menu = IupMenu(
@@ -73,16 +131,18 @@ int main(int argc, char **argv) {
             IupItem("Sair", "btn_sair_cb")
             ,NULL
         )),
-        IupSubmenu("Eventos", IupMenu(
-            IupItem("Novo Orçamento", "btn_abrir_eventos_cb"),
-            IupItem("Gerenciar Eventos", "btn_abrir_eventos_cb"),
+        IupSubmenu("Orçamentos e Eventos", IupMenu(
+            IupItem("Abrir módulo", "btn_abrir_eventos_cb"),
+            NULL
+        )),
+        IupSubmenu("Transações", IupMenu(
+            IupItem("Abrir módulo", "btn_abrir_transacoes_cb"),
             NULL
         )),
         NULL
     );
 
-    // CONTEUDO INICIAL: mensagem de boas-vindas (centralizada e fonte maior)
-    Ihandle *lbl_title = IupLabel("Bem-vindo ao SGE — Sistema de Gestão de Eventos");
+    Ihandle *lbl_title = IupLabel("Bem-vindo ao SGE \u2014 Sistema de Gest\u00e3o de Eventos");
     IupSetAttribute(lbl_title, "ALIGNMENT", "ACENTER:ACENTER");
     IupSetAttribute(lbl_title, "FONTSIZE", "18");
     Ihandle *lbl_hint = IupLabel("Use o menu superior para acessar Cadastros e Eventos.");
@@ -95,15 +155,12 @@ int main(int argc, char **argv) {
     Ihandle *content = IupVbox(IupFill(), hcenter, IupFill(), NULL);
     IupSetAttribute(content, "GAP", "6");
 
-    // CRIA A JANELA PRINCIPAL
     Ihandle *dlg_main = IupDialog(content);
     IupSetAttribute(dlg_main, "TITLE", "SGE (Sistema de Gestão de Eventos)");
     IupSetAttribute(dlg_main, "SIZE", "720x480");
     
-    // Associa o menu à janela principal
     IupSetAttributeHandle(dlg_main, "MENU", menu);
     
-    // Registra os callbacks (só precisa registrar 1x)
     IupSetFunction("btn_abrir_clientes_cb", (Icallback)btn_abrir_clientes_cb);
     IupSetFunction("btn_abrir_equipe_cb", (Icallback)btn_abrir_equipe_cb);
     IupSetFunction("btn_abrir_recursos_cb", (Icallback)btn_abrir_recursos_cb);
@@ -111,6 +168,7 @@ int main(int argc, char **argv) {
     IupSetFunction("btn_abrir_operadores_cb", (Icallback)btn_abrir_operadores_cb);
     IupSetFunction("btn_abrir_produtora_cb", (Icallback)btn_abrir_produtora_cb);
     IupSetFunction("btn_abrir_eventos_cb", (Icallback)btn_abrir_eventos_cb);
+    IupSetFunction("btn_abrir_transacoes_cb", (Icallback)btn_abrir_transacoes_cb);
     IupSetFunction("btn_sair_cb", (Icallback)btn_sair_cb);
 
     IupShowXY(dlg_main, IUP_CENTER, IUP_CENTER);

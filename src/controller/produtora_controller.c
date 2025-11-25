@@ -1,13 +1,48 @@
+/*
+===============================================================================
+   PRODUTORA CONTROLLER
+   
+   Responsável por:
+   - Gerenciar dados da produtora (empresa)
+   - Controlar margem de lucro padrão
+   - Callbacks para interface gráfica
+   
+   IMPORTANTE: A margem de lucro é usada no cálculo de preço de locação!
+===============================================================================
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "../model/pers.h"
 #include "produtora_controller.h"
 
-int produtora_salvar(Produtora p) { return pers_salvar_produtora(p); }
-int produtora_obter(Produtora *out) { return pers_obter_produtora(out); }
-int produtora_remover(void) { return pers_remover_produtora(); }
 
+/* ========================================
+   FUNÇÕES PRINCIPAIS
+   ======================================== */
+
+// Salva ou atualiza dados da produtora
+int produtora_salvar(Produtora p) {
+    return pers_salvar_produtora(p);
+}
+
+// Obtém os dados da produtora
+int produtora_obter(Produtora *out) {
+    return pers_obter_produtora(out);
+}
+
+// Remove os dados da produtora
+int produtora_remover(void) {
+    return pers_remover_produtora();
+}
+
+
+/* ========================================
+   CALLBACKS PARA INTERFACE GRÁFICA (IUP)
+   ======================================== */
+
+// Callback do botão Salvar
 int produtora_salvar_cb(Ihandle *self) {
     Ihandle *tNF = (Ihandle*)IupGetAttribute(self, "tNF");
     Ihandle *tRS = (Ihandle*)IupGetAttribute(self, "tRS");

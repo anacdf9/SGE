@@ -1,5 +1,9 @@
 #include <string.h>
 #include "pers_memoria.h"
+#include "evento_item.h"
+#include "evento_equipe.h"
+#include "evento_fornecedor.h"
+#include "transacoes.h"
 
 #define MEM_MAX_CLIENTES 200
 #define MEM_MAX_RECURSOS 200
@@ -26,8 +30,40 @@ static int total_operadores_mem = 0;
 static Evento eventos_mem[MEM_MAX_EVENTOS];
 static int total_eventos_mem = 0;
 
+#define MEM_MAX_EVENTO_ITENS 1000
+static EventoItem evento_itens_mem[MEM_MAX_EVENTO_ITENS];
+static int total_evento_itens_mem = 0;
+
+#define MEM_MAX_EVENTO_EQUIPES 500
+static EventoEquipe evento_equipes_mem[MEM_MAX_EVENTO_EQUIPES];
+static int total_evento_equipes_mem = 0;
+
+#define MEM_MAX_EVENTO_FORNECEDORES 500
+static EventoFornecedor evento_fornecedores_mem[MEM_MAX_EVENTO_FORNECEDORES];
+static int total_evento_fornecedores_mem = 0;
+
 static Produtora produtora_mem; /* cadastro único */
 static int produtora_definida = 0;
+
+#define MEM_MAX_CAIXA 2000
+static CaixaLancamento caixa_mem[MEM_MAX_CAIXA];
+static int total_caixa_mem = 0;
+
+#define MEM_MAX_CONTAS_RECEBER 500
+static ContaReceber contas_receber_mem[MEM_MAX_CONTAS_RECEBER];
+static int total_contas_receber_mem = 0;
+
+#define MEM_MAX_COMPRAS 500
+static Compra compras_mem[MEM_MAX_COMPRAS];
+static int total_compras_mem = 0;
+
+#define MEM_MAX_COMPRA_ITENS 2000
+static CompraItem compra_itens_mem[MEM_MAX_COMPRA_ITENS];
+static int total_compra_itens_mem = 0;
+
+#define MEM_MAX_CONTAS_PAGAR 1000
+static ContaPagar contas_pagar_mem[MEM_MAX_CONTAS_PAGAR];
+static int total_contas_pagar_mem = 0;
 
 void pers_memoria_inicializar(void) {
     total_clientes_mem = 0;
@@ -37,10 +73,17 @@ void pers_memoria_inicializar(void) {
     total_operadores_mem = 0;
     produtora_definida = 0;
     total_eventos_mem = 0;
+    total_evento_itens_mem = 0;
+    total_evento_equipes_mem = 0;
+    total_evento_fornecedores_mem = 0;
+    total_caixa_mem = 0;
+    total_contas_receber_mem = 0;
+    total_compras_mem = 0;
+    total_compra_itens_mem = 0;
+    total_contas_pagar_mem = 0;
 }
 
 void pers_memoria_finalizar(void) {
-    /* nada específico: memória será liberada ao terminar o programa */
     total_clientes_mem = 0;
     total_recursos_mem = 0;
     total_equipes_mem = 0;
@@ -48,20 +91,23 @@ void pers_memoria_finalizar(void) {
     total_operadores_mem = 0;
     produtora_definida = 0;
     total_eventos_mem = 0;
+    total_evento_itens_mem = 0;
+    total_evento_equipes_mem = 0;
+    total_evento_fornecedores_mem = 0;
+    total_caixa_mem = 0;
+    total_contas_receber_mem = 0;
+    total_compras_mem = 0;
+    total_compra_itens_mem = 0;
+    total_contas_pagar_mem = 0;
 }
 
 int pers_memoria_salvar_cliente(Cliente c) {
-    /* se id já existe -> atualizar */
     for (int i = 0; i < total_clientes_mem; i++) {
         if (clientes_mem[i].id == c.id) {
-            // clients_mem_copy:  <-- TIREI ESSE LABEL QUE DAVA WARNING
-            clientes_mem[i] = c;
             return 1;
         }
     }
-    /* inserir novo: verifica espaço e unicidade do id */
     if (total_clientes_mem >= MEM_MAX_CLIENTES) return 0;
-    /* evita duplicar id já existente (verificação acima cobre) */
     clientes_mem[total_clientes_mem++] = c;
     return 1;
 }
@@ -224,4 +270,148 @@ int pers_memoria_remover_evento(int id) {
         }
     }
     return 0;
+}
+
+/* ===== EventoItem (stubs em memória) ===== */
+int pers_memoria_salvar_evento_item(EventoItem it) {
+    for (int i = 0; i < total_evento_itens_mem; i++) {
+        if (evento_itens_mem[i].id == it.id && it.id > 0) { evento_itens_mem[i] = it; return 1; }
+    }
+    if (total_evento_itens_mem >= MEM_MAX_EVENTO_ITENS) return 0;
+    int max_id = 0; for(int i=0;i<total_evento_itens_mem;i++) if(evento_itens_mem[i].id > max_id) max_id = evento_itens_mem[i].id;
+    it.id = max_id + 1;
+    evento_itens_mem[total_evento_itens_mem++] = it; return 1;
+}
+int pers_memoria_carregar_evento_itens(EventoItem *lista, int max) {
+    int n = (total_evento_itens_mem < max) ? total_evento_itens_mem : max;
+    for (int i = 0; i < n; i++) lista[i] = evento_itens_mem[i];
+    return n;
+}
+int pers_memoria_remover_evento_itens_por_evento(int evento_id) {
+    int i = 0;
+    while(i < total_evento_itens_mem){
+        if(evento_itens_mem[i].evento_id == evento_id){
+            for(int j=i; j < total_evento_itens_mem - 1; j++) evento_itens_mem[j] = evento_itens_mem[j+1];
+            total_evento_itens_mem--;
+        } else {
+            i++;
+        }
+    }
+    return 1;
+}
+
+/* ===== EventoEquipe (stubs em memória) ===== */
+int pers_memoria_salvar_evento_equipe(EventoEquipe ee) {
+    for (int i = 0; i < total_evento_equipes_mem; i++) {
+        if (evento_equipes_mem[i].id == ee.id && ee.id > 0) { evento_equipes_mem[i] = ee; return 1; }
+    }
+    if (total_evento_equipes_mem >= MEM_MAX_EVENTO_EQUIPES) return 0;
+    int max_id = 0; for(int i=0;i<total_evento_equipes_mem;i++) if(evento_equipes_mem[i].id > max_id) max_id = evento_equipes_mem[i].id;
+    ee.id = max_id + 1;
+    evento_equipes_mem[total_evento_equipes_mem++] = ee; return 1;
+}
+int pers_memoria_carregar_evento_equipes(EventoEquipe *lista, int max) {
+    int n = (total_evento_equipes_mem < max) ? total_evento_equipes_mem : max;
+    for (int i = 0; i < n; i++) lista[i] = evento_equipes_mem[i];
+    return n;
+}
+int pers_memoria_remover_evento_equipes_por_evento(int evento_id) {
+    int i = 0;
+    while(i < total_evento_equipes_mem){
+        if(evento_equipes_mem[i].evento_id == evento_id){
+            for(int j=i; j < total_evento_equipes_mem - 1; j++) evento_equipes_mem[j] = evento_equipes_mem[j+1];
+            total_evento_equipes_mem--;
+        } else {
+            i++;
+        }
+    }
+    return 1;
+}
+
+/* ===== EventoFornecedor (stubs em memória) ===== */
+int pers_memoria_salvar_evento_fornecedor(EventoFornecedor ef) {
+    for (int i = 0; i < total_evento_fornecedores_mem; i++) {
+        if (evento_fornecedores_mem[i].id == ef.id && ef.id > 0) { evento_fornecedores_mem[i] = ef; return 1; }
+    }
+    if (total_evento_fornecedores_mem >= MEM_MAX_EVENTO_FORNECEDORES) return 0;
+    int max_id = 0; for(int i=0;i<total_evento_fornecedores_mem;i++) if(evento_fornecedores_mem[i].id > max_id) max_id = evento_fornecedores_mem[i].id;
+    ef.id = max_id + 1;
+    evento_fornecedores_mem[total_evento_fornecedores_mem++] = ef; return 1;
+}
+int pers_memoria_carregar_evento_fornecedores(EventoFornecedor *lista, int max) {
+    int n = (total_evento_fornecedores_mem < max) ? total_evento_fornecedores_mem : max;
+    for (int i = 0; i < n; i++) lista[i] = evento_fornecedores_mem[i];
+    return n;
+}
+int pers_memoria_remover_evento_fornecedores_por_evento(int evento_id) {
+    int i = 0;
+    while(i < total_evento_fornecedores_mem){
+        if(evento_fornecedores_mem[i].evento_id == evento_id){
+            for(int j=i; j < total_evento_fornecedores_mem - 1; j++) evento_fornecedores_mem[j] = evento_fornecedores_mem[j+1];
+            total_evento_fornecedores_mem--;
+        } else {
+            i++;
+        }
+    }
+    return 1;
+}
+
+/* ==================== Transações em Memória ==================== */
+
+int pers_memoria_salvar_caixa(CaixaLancamento l){
+    if(l.id<=0){ int max_id=0; for(int i=0;i<total_caixa_mem;i++) if(caixa_mem[i].id>max_id) max_id=caixa_mem[i].id; l.id=max_id+1; }
+    if(total_caixa_mem >= MEM_MAX_CAIXA) return 0;
+    caixa_mem[total_caixa_mem++]=l; return l.id;
+}
+int pers_memoria_carregar_caixa(CaixaLancamento *lista, int max){
+    int n = (total_caixa_mem < max) ? total_caixa_mem : max;
+    for(int i=0;i<n;i++) lista[i]=caixa_mem[i];
+    return n;
+}
+
+int pers_memoria_salvar_conta_receber(ContaReceber c){
+    for(int i=0;i<total_contas_receber_mem;i++){ if(contas_receber_mem[i].id==c.id){ contas_receber_mem[i]=c; return c.id; } }
+    if(c.id<=0){ int max_id=0; for(int i=0;i<total_contas_receber_mem;i++) if(contas_receber_mem[i].id>max_id) max_id=contas_receber_mem[i].id; c.id=max_id+1; }
+    if(total_contas_receber_mem >= MEM_MAX_CONTAS_RECEBER) return 0;
+    contas_receber_mem[total_contas_receber_mem++]=c; return c.id;
+}
+int pers_memoria_carregar_contas_receber(ContaReceber *lista, int max){
+    int n = (total_contas_receber_mem < max) ? total_contas_receber_mem : max;
+    for(int i=0;i<n;i++) lista[i]=contas_receber_mem[i];
+    return n;
+}
+
+int pers_memoria_salvar_compra(Compra c){
+    for(int i=0;i<total_compras_mem;i++){ if(compras_mem[i].id==c.id){ compras_mem[i]=c; return c.id; } }
+    if(c.id<=0){ int max_id=0; for(int i=0;i<total_compras_mem;i++) if(compras_mem[i].id>max_id) max_id=compras_mem[i].id; c.id=max_id+1; }
+    if(total_compras_mem >= MEM_MAX_COMPRAS) return 0;
+    compras_mem[total_compras_mem++]=c; return c.id;
+}
+int pers_memoria_carregar_compras(Compra *lista, int max){
+    int n = (total_compras_mem < max) ? total_compras_mem : max;
+    for(int i=0;i<n;i++) lista[i]=compras_mem[i];
+    return n;
+}
+
+int pers_memoria_salvar_compra_item(CompraItem it){
+    for(int i=0;i<total_compra_itens_mem;i++){ if(compra_itens_mem[i].id==it.id && it.id>0){ compra_itens_mem[i]=it; return it.id; } }
+    if(it.id<=0){ int max_id=0; for(int i=0;i<total_compra_itens_mem;i++) if(compra_itens_mem[i].id>max_id) max_id=compra_itens_mem[i].id; it.id=max_id+1; }
+    if(total_compra_itens_mem >= MEM_MAX_COMPRA_ITENS) return 0;
+    compra_itens_mem[total_compra_itens_mem++]=it; return it.id;
+}
+int pers_memoria_carregar_compra_itens_por_compra(int compra_id, CompraItem *lista, int max){
+    int n=0; for(int i=0;i<total_compra_itens_mem && n<max;i++){ if(compra_itens_mem[i].compra_id==compra_id){ lista[n++]=compra_itens_mem[i]; } }
+    return n;
+}
+
+int pers_memoria_salvar_conta_pagar(ContaPagar c){
+    for(int i=0;i<total_contas_pagar_mem;i++){ if(contas_pagar_mem[i].id==c.id){ contas_pagar_mem[i]=c; return c.id; } }
+    if(c.id<=0){ int max_id=0; for(int i=0;i<total_contas_pagar_mem;i++) if(contas_pagar_mem[i].id>max_id) max_id=contas_pagar_mem[i].id; c.id=max_id+1; }
+    if(total_contas_pagar_mem >= MEM_MAX_CONTAS_PAGAR) return 0;
+    contas_pagar_mem[total_contas_pagar_mem++]=c; return c.id;
+}
+int pers_memoria_carregar_contas_pagar(ContaPagar *lista, int max){
+    int n = (total_contas_pagar_mem < max) ? total_contas_pagar_mem : max;
+    for(int i=0;i<n;i++) lista[i]=contas_pagar_mem[i];
+    return n;
 }

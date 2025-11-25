@@ -154,7 +154,9 @@ void fornecedor_view_mostrar(void) {
     if (!dlg_fornecedor) {
         dlg_fornecedor = IupDialog(fornecedor_view_create());
         IupSetAttribute(dlg_fornecedor, "TITLE", "Cadastro de Fornecedores");
-        IupSetAttribute(dlg_fornecedor, "SIZE", "860x560");
+        IupSetAttribute(dlg_fornecedor, "SIZE", "760x540");
+        IupSetAttribute(dlg_fornecedor, "RESIZE", "YES");
+        IupSetAttribute(dlg_fornecedor, "MAXBOX", "YES");
     }
     IupShowXY(dlg_fornecedor, IUP_CENTER, IUP_CENTER);
 }

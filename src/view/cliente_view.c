@@ -1,16 +1,39 @@
+/*
+===============================================================================
+   CLIENTE VIEW - Interface Gráfica
+   
+   Tela de cadastro de clientes com:
+   - Matriz (tabela) listando todos os clientes
+   - Formulário para criar/editar clientes
+   - Validação de CPF/CNPJ e telefone
+   - Botões: Novo, Salvar, Excluir, Atualizar
+===============================================================================
+*/
+
 #include <iup.h>
 #include <iupcontrols.h>
-#include "../controller/cliente_controller.h" // Inclui os callbacks (_cb)
-#include "cliente_view.h" // Inclui o próprio .h (boa prática)
+#include "../controller/cliente_controller.h"
+#include "cliente_view.h"
 #include "ui_common.h"
 #include "validation.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-// Guarda a janela do cliente pra não criar várias
+
+/* ========================================
+   VARIÁVEIS GLOBAIS DA TELA
+   ======================================== */
+
+// Armazena ponteiros para não criar múltiplas janelas
 static Ihandle* dlg_cliente = NULL;
 static Ihandle* mat_cliente = NULL;
 
+
+/* ========================================
+   FUNÇÕES AUXILIARES
+   ======================================== */
+
+// Recarrega a matriz com todos os clientes cadastrados
 static void cliente_view_recarregar_matriz(Ihandle *mat) {
     Cliente buffer[256];
     int n = cliente_listar(buffer, 256);
@@ -39,6 +62,7 @@ static void cliente_view_recarregar_matriz(Ihandle *mat) {
     }
 }
 
+// Callback quando usuário clica em uma linha da matriz (preenche formulário)
 static int cliente_view_click_cb(Ihandle *mat, int lin, int col, char *status) {
     if (lin <= 0) return IUP_DEFAULT;
     Ihandle *txtId = (Ihandle*)IupGetAttribute(mat, "txtId");
@@ -59,7 +83,13 @@ static int cliente_view_click_cb(Ihandle *mat, int lin, int col, char *status) {
     return IUP_DEFAULT;
 }
 
-    static int cliente_salvar_wrap_cb(Ihandle *self) {
+
+/* ========================================
+   CALLBACKS DOS BOTÕES
+   ======================================== */
+
+// Callback do botão Salvar (com validações)
+static int cliente_salvar_wrap_cb(Ihandle *self) {
         Ihandle *txtCpfCnpj = (Ihandle*)IupGetAttribute(self, "txtCpfCnpj");
         Ihandle *txtTelefone = (Ihandle*)IupGetAttribute(self, "txtTelefone");
         const char* sdoc = IupGetAttribute(txtCpfCnpj, "VALUE");
@@ -71,7 +101,8 @@ static int cliente_view_click_cb(Ihandle *mat, int lin, int col, char *status) {
         return IUP_DEFAULT;
     }
 
-    static int cliente_excluir_wrap_cb(Ihandle *self) {
+// Callback do botão Excluir
+static int cliente_excluir_wrap_cb(Ihandle *self) {
         cliente_excluir_cb(self);
         if (mat_cliente) cliente_view_recarregar_matriz(mat_cliente);
         return IUP_DEFAULT;
@@ -83,6 +114,7 @@ static int cliente_atualizar_cb(Ihandle *self) {
     return IUP_DEFAULT;
 }
 
+// Callback do botão Novo (limpa formulário)
 static int cliente_novo_cb(Ihandle *self) {
     Ihandle *txtId = (Ihandle*)IupGetAttribute(self, "txtId");
     Ihandle *txtNome = (Ihandle*)IupGetAttribute(self, "txtNome");
@@ -226,7 +258,9 @@ void cliente_view_mostrar(void) {
         // 2. Coloca o formulário dentro de uma Dialog (Janela)
         dlg_cliente = IupDialog(form_cliente);
         IupSetAttribute(dlg_cliente, "TITLE", "Cadastro de Clientes");
-        IupSetAttribute(dlg_cliente, "SIZE", "700x420");
+        IupSetAttribute(dlg_cliente, "SIZE", "640x460");
+        IupSetAttribute(dlg_cliente, "RESIZE", "YES");
+        IupSetAttribute(dlg_cliente, "MAXBOX", "YES");
     }
 
     // Mostra a dialog (janela)

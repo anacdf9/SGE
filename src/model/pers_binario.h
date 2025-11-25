@@ -8,6 +8,9 @@
 #include "operador.h"
 #include "produtora.h"
 #include "evento.h"
+#include "evento_equipe.h"
+#include "evento_fornecedor.h"
+#include "transacoes.h"
 
 void pers_binario_inicializar(void);
 void pers_binario_finalizar(void);
@@ -40,5 +43,31 @@ int pers_binario_remover_produtora(void);
 int pers_binario_salvar_evento(Evento e);
 int pers_binario_carregar_eventos(Evento *lista, int max);
 int pers_binario_remover_evento(int id);
+
+/* Stubs para novas entidades (não implementado em binário) */
+int pers_binario_salvar_evento_equipe(EventoEquipe ee);
+int pers_binario_carregar_evento_equipes(EventoEquipe *lista, int max);
+int pers_binario_remover_evento_equipes_por_evento(int evento_id);
+
+int pers_binario_salvar_evento_fornecedor(EventoFornecedor ef);
+int pers_binario_carregar_evento_fornecedores(EventoFornecedor *lista, int max);
+int pers_binario_remover_evento_fornecedores_por_evento(int evento_id);
+
+/* ==================== Transações ==================== */
+int pers_binario_salvar_caixa(CaixaLancamento l);
+int pers_binario_carregar_caixa(CaixaLancamento *lista, int max);
+
+int pers_binario_salvar_conta_receber(ContaReceber c);
+int pers_binario_carregar_contas_receber(ContaReceber *lista, int max);
+
+int pers_binario_salvar_compra(Compra c);
+int pers_binario_carregar_compras(Compra *lista, int max);
+
+int pers_binario_salvar_compra_item(CompraItem it);
+int pers_binario_carregar_compra_itens_por_compra(int compra_id, CompraItem *lista, int max);
+
+int pers_binario_salvar_conta_pagar(ContaPagar c);
+int pers_binario_carregar_contas_pagar(ContaPagar *lista, int max);
+
 
 #endif // PERS_BINARIO_H

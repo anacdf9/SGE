@@ -10,20 +10,17 @@ static const char *ARQ_FORNEC_BIN   = "fornecedores.bin";
 static const char *ARQ_OPER_BIN     = "operadores.bin";
 static const char *ARQ_PROD_BIN     = "produtora.bin";
 static const char *ARQ_EVENTOS_BIN  = "eventos.bin";
+static const char *ARQ_CAIXA_BIN    = "caixa.bin";
+static const char *ARQ_CONTAS_RECEBER_BIN = "contas_receber.bin";
+static const char *ARQ_COMPRAS_BIN  = "compras.bin";
+static const char *ARQ_COMPRA_ITENS_BIN = "compras_itens.bin";
+static const char *ARQ_CONTAS_PAGAR_BIN = "contas_pagar.bin";
 
-/* formato: sequência de registros Cliente com tamanho fixo (struct) */
-/* NOTE: use fwrite/fread com structs com campos char[] fixos (como o nosso Cliente) */
+void pers_binario_inicializar(void) {}
 
-void pers_binario_inicializar(void) {
-    /* nada especial */
-}
-
-void pers_binario_finalizar(void) {
-    /* nada especial */
-}
+void pers_binario_finalizar(void) {}
 
 int pers_binario_salvar_cliente(Cliente c) {
-    /* carregar todos, substituir se id existe, senão append e gravar novamente */
     FILE *f = fopen(ARQ_CLIENTES_BIN, "rb");
     Cliente *lista = NULL;
     int total = 0;
@@ -137,3 +134,83 @@ int pers_binario_remover_produtora(void){ return remove(ARQ_PROD_BIN)==0 ? 1 : 0
 int pers_binario_salvar_evento(Evento e){ FILE *f=fopen(ARQ_EVENTOS_BIN,"rb"); Evento *lista=NULL,temp; int total=0; if(f){ while(fread(&temp,sizeof(Evento),1,f)==1){ lista=realloc(lista,sizeof(Evento)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);} int found=0; for(int i=0;i<total;i++){ if(lista[i].id==e.id){lista[i]=e;found=1;break;} } if(!found){ lista=realloc(lista,sizeof(Evento)*(total+1)); if(!lista) return 0; lista[total++]=e; } f=fopen(ARQ_EVENTOS_BIN,"wb"); if(!f){ free(lista); return 0; } fwrite(lista,sizeof(Evento),total,f); fclose(f); free(lista); return 1; }
 int pers_binario_carregar_eventos(Evento *lista,int max){ FILE *f=fopen(ARQ_EVENTOS_BIN,"rb"); if(!f) return 0; int total=0; Evento temp; while(fread(&temp,sizeof(Evento),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; } fclose(f); if(lista) return (total<max)?total:max; return total; }
 int pers_binario_remover_evento(int id){ FILE *f=fopen(ARQ_EVENTOS_BIN,"rb"); if(!f) return 0; Evento *lista=NULL,temp; int total=0; while(fread(&temp,sizeof(Evento),1,f)==1){ lista=realloc(lista,sizeof(Evento)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f); int found=0; for(int i=0;i<total;i++){ if(lista[i].id==id){ for(int j=i;j<total-1;j++) lista[j]=lista[j+1]; total--; found=1; break; } } if(!found){ free(lista); return 0; } f=fopen(ARQ_EVENTOS_BIN,"wb"); if(!f){ free(lista); return 0; } fwrite(lista,sizeof(Evento),total,f); fclose(f); free(lista); return 1; }
+
+int pers_binario_salvar_evento_equipe(EventoEquipe ee) { (void)ee; return 0; }
+int pers_binario_carregar_evento_equipes(EventoEquipe *lista, int max) { (void)lista; (void)max; return 0; }
+int pers_binario_remover_evento_equipes_por_evento(int evento_id) { (void)evento_id; return 0; }
+
+int pers_binario_salvar_evento_fornecedor(EventoFornecedor ef) { (void)ef; return 0; }
+int pers_binario_carregar_evento_fornecedores(EventoFornecedor *lista, int max) { (void)lista; (void)max; return 0; }
+int pers_binario_remover_evento_fornecedores_por_evento(int evento_id) { (void)evento_id; return 0; }
+
+/* ==================== Transações em Binário ==================== */
+
+int pers_binario_salvar_caixa(CaixaLancamento l){
+    FILE *f=fopen(ARQ_CAIXA_BIN,"rb"); CaixaLancamento *lista=NULL,temp; int total=0;
+    if(f){ while(fread(&temp,sizeof(CaixaLancamento),1,f)==1){ lista=realloc(lista,sizeof(CaixaLancamento)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);}
+    if(l.id<=0){ int max_id=0; for(int i=0;i<total;i++) if(lista[i].id>max_id) max_id=lista[i].id; l.id=max_id+1; }
+    lista=realloc(lista,sizeof(CaixaLancamento)*(total+1)); if(!lista) return 0; lista[total++]=l;
+    f=fopen(ARQ_CAIXA_BIN,"wb"); if(!f){ free(lista); return 0; }
+    fwrite(lista,sizeof(CaixaLancamento),total,f); fclose(f); free(lista); return l.id;
+}
+int pers_binario_carregar_caixa(CaixaLancamento *lista, int max){
+    FILE *f=fopen(ARQ_CAIXA_BIN,"rb"); if(!f) return 0; int total=0; CaixaLancamento temp;
+    while(fread(&temp,sizeof(CaixaLancamento),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; }
+    fclose(f); if(lista) return (total<max)?total:max; return total;
+}
+
+int pers_binario_salvar_conta_receber(ContaReceber c){
+    FILE *f=fopen(ARQ_CONTAS_RECEBER_BIN,"rb"); ContaReceber *lista=NULL,temp; int total=0;
+    if(f){ while(fread(&temp,sizeof(ContaReceber),1,f)==1){ lista=realloc(lista,sizeof(ContaReceber)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);}
+    int found=0; for(int i=0;i<total;i++){ if(lista[i].id==c.id){lista[i]=c;found=1;break;} }
+    if(!found){ if(c.id<=0){ int max_id=0; for(int i=0;i<total;i++) if(lista[i].id>max_id) max_id=lista[i].id; c.id=max_id+1; } lista=realloc(lista,sizeof(ContaReceber)*(total+1)); if(!lista) return 0; lista[total++]=c; }
+    f=fopen(ARQ_CONTAS_RECEBER_BIN,"wb"); if(!f){ free(lista); return 0; }
+    fwrite(lista,sizeof(ContaReceber),total,f); fclose(f); free(lista); return c.id;
+}
+int pers_binario_carregar_contas_receber(ContaReceber *lista, int max){
+    FILE *f=fopen(ARQ_CONTAS_RECEBER_BIN,"rb"); if(!f) return 0; int total=0; ContaReceber temp;
+    while(fread(&temp,sizeof(ContaReceber),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; }
+    fclose(f); if(lista) return (total<max)?total:max; return total;
+}
+
+int pers_binario_salvar_compra(Compra c){
+    FILE *f=fopen(ARQ_COMPRAS_BIN,"rb"); Compra *lista=NULL,temp; int total=0;
+    if(f){ while(fread(&temp,sizeof(Compra),1,f)==1){ lista=realloc(lista,sizeof(Compra)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);}
+    int found=0; for(int i=0;i<total;i++){ if(lista[i].id==c.id){lista[i]=c;found=1;break;} }
+    if(!found){ if(c.id<=0){ int max_id=0; for(int i=0;i<total;i++) if(lista[i].id>max_id) max_id=lista[i].id; c.id=max_id+1; } lista=realloc(lista,sizeof(Compra)*(total+1)); if(!lista) return 0; lista[total++]=c; }
+    f=fopen(ARQ_COMPRAS_BIN,"wb"); if(!f){ free(lista); return 0; }
+    fwrite(lista,sizeof(Compra),total,f); fclose(f); free(lista); return c.id;
+}
+int pers_binario_carregar_compras(Compra *lista, int max){
+    FILE *f=fopen(ARQ_COMPRAS_BIN,"rb"); if(!f) return 0; int total=0; Compra temp;
+    while(fread(&temp,sizeof(Compra),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; }
+    fclose(f); if(lista) return (total<max)?total:max; return total;
+}
+
+int pers_binario_salvar_compra_item(CompraItem it){
+    FILE *f=fopen(ARQ_COMPRA_ITENS_BIN,"rb"); CompraItem *lista=NULL,temp; int total=0;
+    if(f){ while(fread(&temp,sizeof(CompraItem),1,f)==1){ lista=realloc(lista,sizeof(CompraItem)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);}
+    int found=0; if(it.id>0){ for(int i=0;i<total;i++){ if(lista[i].id==it.id){lista[i]=it;found=1;break;} } }
+    if(!found){ if(it.id<=0){ int max_id=0; for(int i=0;i<total;i++) if(lista[i].id>max_id) max_id=lista[i].id; it.id=max_id+1; } lista=realloc(lista,sizeof(CompraItem)*(total+1)); if(!lista) return 0; lista[total++]=it; }
+    f=fopen(ARQ_COMPRA_ITENS_BIN,"wb"); if(!f){ free(lista); return 0; }
+    fwrite(lista,sizeof(CompraItem),total,f); fclose(f); free(lista); return it.id;
+}
+int pers_binario_carregar_compra_itens_por_compra(int compra_id, CompraItem *lista, int max){
+    FILE *f=fopen(ARQ_COMPRA_ITENS_BIN,"rb"); if(!f) return 0; int n=0; CompraItem temp;
+    while(fread(&temp,sizeof(CompraItem),1,f)==1){ if(temp.compra_id==compra_id){ if(lista && n<max) lista[n]=temp; n++; } }
+    fclose(f); return (lista && n>max)?max:n;
+}
+
+int pers_binario_salvar_conta_pagar(ContaPagar c){
+    FILE *f=fopen(ARQ_CONTAS_PAGAR_BIN,"rb"); ContaPagar *lista=NULL,temp; int total=0;
+    if(f){ while(fread(&temp,sizeof(ContaPagar),1,f)==1){ lista=realloc(lista,sizeof(ContaPagar)*(total+1)); if(!lista){fclose(f);return 0;} lista[total++]=temp;} fclose(f);}
+    int found=0; for(int i=0;i<total;i++){ if(lista[i].id==c.id){lista[i]=c;found=1;break;} }
+    if(!found){ if(c.id<=0){ int max_id=0; for(int i=0;i<total;i++) if(lista[i].id>max_id) max_id=lista[i].id; c.id=max_id+1; } lista=realloc(lista,sizeof(ContaPagar)*(total+1)); if(!lista) return 0; lista[total++]=c; }
+    f=fopen(ARQ_CONTAS_PAGAR_BIN,"wb"); if(!f){ free(lista); return 0; }
+    fwrite(lista,sizeof(ContaPagar),total,f); fclose(f); free(lista); return c.id;
+}
+int pers_binario_carregar_contas_pagar(ContaPagar *lista, int max){
+    FILE *f=fopen(ARQ_CONTAS_PAGAR_BIN,"rb"); if(!f) return 0; int total=0; ContaPagar temp;
+    while(fread(&temp,sizeof(ContaPagar),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; }
+    fclose(f); if(lista) return (total<max)?total:max; return total;
+}

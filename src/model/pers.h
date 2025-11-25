@@ -8,6 +8,10 @@
 #include "operador.h"
 #include "produtora.h"
 #include "evento.h"
+#include "evento_item.h"
+#include "evento_equipe.h"
+#include "evento_fornecedor.h"
+#include "transacoes.h"
 #include "config.h"
 #include <stdlib.h>   
 
@@ -49,5 +53,38 @@ int pers_remover_produtora(void);
 int pers_salvar_evento(Evento e);
 int pers_carregar_eventos(Evento *lista, int max);
 int pers_remover_evento(int id);
+
+/* Itens de evento (múltiplos recursos por evento) */
+int pers_salvar_evento_item(EventoItem it);
+int pers_carregar_evento_itens(EventoItem *lista, int max);
+int pers_remover_evento_itens_por_evento(int evento_id);
+
+/* Itens de evento (múltiplas equipes por evento) */
+int pers_salvar_evento_equipe(EventoEquipe ee);
+int pers_carregar_evento_equipes(EventoEquipe *lista, int max);
+int pers_remover_evento_equipes_por_evento(int evento_id);
+
+/* Itens de evento (múltiplos fornecedores por evento) */
+int pers_salvar_evento_fornecedor(EventoFornecedor ef);
+int pers_carregar_evento_fornecedores(EventoFornecedor *lista, int max);
+int pers_remover_evento_fornecedores_por_evento(int evento_id);
+
+/* Caixa */
+int pers_salvar_caixa(CaixaLancamento l);
+int pers_carregar_caixa(CaixaLancamento *lista, int max);
+
+/* Contas a Receber */
+int pers_salvar_conta_receber(ContaReceber c);
+int pers_carregar_contas_receber(ContaReceber *lista, int max);
+
+/* Compras */
+int pers_salvar_compra(Compra c);
+int pers_carregar_compras(Compra *lista, int max);
+int pers_salvar_compra_item(CompraItem it);
+int pers_carregar_compra_itens_por_compra(int compra_id, CompraItem *lista, int max);
+
+/* Contas a Pagar */
+int pers_salvar_conta_pagar(ContaPagar c);
+int pers_carregar_contas_pagar(ContaPagar *lista, int max);
 
 #endif // PERS_H

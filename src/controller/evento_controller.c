@@ -1,50 +1,247 @@
+/*
+===============================================================================
+   EVENTO CONTROLLER
+   
+   Responsável por:
+   - Gerenciar criação de orçamentos e eventos
+   - Controlar alocação de recursos, equipe e fornecedores
+   - Calcular valores totais automaticamente
+   - Verificar conflitos de agenda
+   - Aprovar e finalizar eventos
+   
+   Status de um Evento:
+   - ORÇAMENTO: proposta inicial (pode ser editada)
+   - APROVADO: confirmado (recursos reservados)
+   - FINALIZADO: concluído (valor final consolidado)
+===============================================================================
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include "evento_controller.h"
+#include "recurso_controller.h"
+#include "equipe_controller.h"
 #include "../model/pers.h"
-#include "../model/cliente.h"
 #include "../model/recurso.h"
 #include "../model/equipe.h"
 #include "../model/fornecedor.h"
+#include "../model/evento_item.h"
+#include "../model/evento_equipe.h"
+#include "../model/evento_fornecedor.h"
 
-static int evento_next_id(void){ Evento buf[1024]; int n=pers_carregar_eventos(buf,1024); int m=0; for(int i=0;i<n;i++) if(buf[i].id>m) m=buf[i].id; return m+1; }
 
-int evento_listar(Evento *buffer,int max){ return pers_carregar_eventos(buffer,max); }
-int evento_excluir(int id){ return pers_remover_evento(id); }
+/* ========================================
+   FUNÇÕES AUXILIARES
+   ======================================== */
 
-static int parse_date(const char *s){ if(!s||strlen(s)<10) return 0; int y,m,d; if(sscanf(s,"%d-%d-%d",&y,&m,&d)!=3) return 0; return y*10000 + m*100 + d; }
-static int dias_intervalo(const char *ini,const char *fim){ int a=parse_date(ini); int b=parse_date(fim); if(a==0||b==0||b<a) return 0; int ay=a/10000, am=(a/100)%100, ad=a%100; int by=b/10000, bm=(b/100)%100, bd=b%100; /* simplificado: ignora meses diferentes com cálculo exato */ int diff = bd - ad + 1; if(am!=bm || ay!=by) diff = 1; if(diff<1) diff=1; return diff; }
-
-static int evento_conflito(Evento novo){
-	Evento buf[1024]; int n=pers_carregar_eventos(buf,1024);
-	int ini=parse_date(novo.data_inicio); int fim=parse_date(novo.data_fim);
-	if(ini==0||fim==0||fim<ini) return 1; /* datas inválidas tratadas como conflito */
-	/* Se não houver recurso selecionado, não considerar conflito de estoque */
-	if(novo.recurso_id<=0) return 0;
-	/* Verifica disponibilidade por quantidade do recurso */
-	Recurso rbuf[256]; int rn=pers_carregar_recursos(rbuf,256); int recurso_qtd_total=0; int recurso_found=0;
-	for(int i=0;i<rn;i++){ if(rbuf[i].id==novo.recurso_id){ recurso_qtd_total=rbuf[i].quantidade; recurso_found=1; break; } }
-	if(!recurso_found) return 0; /* recurso não encontrado: não bloquear aprovação */
-	int qtd_alocada_intervalo=0;
-	for(int i=0;i<n;i++){
-		if(buf[i].status!=EVENTO_STATUS_APROVADO) continue;
-		if(buf[i].recurso_id!=novo.recurso_id) continue;
-		int oini=parse_date(buf[i].data_inicio); int ofim=parse_date(buf[i].data_fim);
-		if(!(fim < oini || ini > ofim)){
-			qtd_alocada_intervalo += buf[i].recurso_qtd;
-		}
-	}
-	if(qtd_alocada_intervalo + novo.recurso_qtd > recurso_qtd_total) return 1; /* ultrapassa estoque */
-	return 0;
+// Converte data "YYYY-MM-DD" para inteiro AAAAMMDD (facilita comparações)
+static int parse_date(const char *s) {
+    if (!s || strlen(s) < 10) return 0;
+    
+    int y, m, d;
+    if (sscanf(s, "%d-%d-%d", &y, &m, &d) != 3) return 0;
+    
+    return y * 10000 + m * 100 + d;
 }
 
-static double calcular_estimado(Evento e){ Recurso rbuf[256]; int rn=pers_carregar_recursos(rbuf,256); double recurso_custo=0; for(int i=0;i<rn;i++) if(rbuf[i].id==e.recurso_id){ int dias=dias_intervalo(e.data_inicio,e.data_fim); recurso_custo = rbuf[i].valor_locacao * e.recurso_qtd * dias; break; }
- Equipe eb[256]; int en=pers_carregar_equipes(eb,256); double equipe_custo=0; for(int i=0;i<en;i++) if(eb[i].id==e.equipe_id){ equipe_custo = eb[i].valor_hora * e.equipe_horas; break; }
- double fornecedor_custo = e.fornecedor_valor; return recurso_custo + equipe_custo + fornecedor_custo; }
+// Calcula o total estimado do evento (recursos + equipe + fornecedores)
+static double calcular_total_estimado(int evento_id) {
+    double total = 0.0;
 
-int evento_salvar(Evento e){ if(e.id<=0){ e.id=evento_next_id(); if(e.id<=0) e.id=1; } if(e.status==EVENTO_STATUS_RASCUNHO){ e.total_estimado = calcular_estimado(e); } return pers_salvar_evento(e); }
+    // Recursos
+    EventoItem itens[512];
+    int n_itens = pers_carregar_evento_itens(itens, 512);
+    for (int i = 0; i < n_itens; i++) {
+        if (itens[i].evento_id == evento_id) {
+            Recurso r;
+            if (recurso_obter(itens[i].recurso_id, &r)) {
+                total += r.valor_locacao * itens[i].quantidade;
+            }
+        }
+    }
 
-int evento_aprovar(int id){ Evento buf[1024]; int n=pers_carregar_eventos(buf,1024); for(int i=0;i<n;i++){ if(buf[i].id==id){ if(buf[i].status!=EVENTO_STATUS_RASCUNHO) return 0; if(evento_conflito(buf[i])) return 0; buf[i].status=EVENTO_STATUS_APROVADO; buf[i].total_estimado=calcular_estimado(buf[i]); return pers_salvar_evento(buf[i]); } } return 0; }
+    // Equipes
+    EventoEquipe equipes_aloc[512];
+    int n_eq = pers_carregar_evento_equipes(equipes_aloc, 512);
+    for (int i = 0; i < n_eq; i++) {
+        if (equipes_aloc[i].evento_id == evento_id) {
+            Equipe e;
+            if (equipe_obter(equipes_aloc[i].equipe_id, &e)) {
+                total += e.valor_hora * equipes_aloc[i].horas_trabalhadas;
+            }
+        }
+    }
 
-int evento_finalizar(int id){ Evento buf[1024]; int n=pers_carregar_eventos(buf,1024); for(int i=0;i<n;i++){ if(buf[i].id==id){ if(buf[i].status!=EVENTO_STATUS_APROVADO) return 0; buf[i].status=EVENTO_STATUS_FINALIZADO; buf[i].total_final=buf[i].total_estimado; return pers_salvar_evento(buf[i]); } } return 0; }
+    // Fornecedores
+    EventoFornecedor forn[512];
+    int n_for = pers_carregar_evento_fornecedores(forn, 512);
+    for (int i = 0; i < n_for; i++) {
+        if (forn[i].evento_id == evento_id) {
+            total += forn[i].valor_servico;
+        }
+    }
+
+    return total;
+}
+
+// Verifica se dois intervalos de datas se sobrepõem
+static int intervalo_conflita(const char *ini1, const char *fim1,
+                               const char *ini2, const char *fim2) {
+    int a1 = parse_date(ini1);
+    int b1 = parse_date(fim1);
+    int a2 = parse_date(ini2);
+    int b2 = parse_date(fim2);
+    
+    if (!a1 || !b1 || !a2 || !b2) return 0;
+    
+    // Dois intervalos se sobrepõem se: início1 <= fim2 E início2 <= fim1
+    return (a1 <= b2) && (a2 <= b1);
+}
+
+
+/* ========================================
+   FUNÇÕES PRINCIPAIS
+   ======================================== */
+
+// Salva ou atualiza um evento (recalcula total automaticamente)
+int evento_salvar(Evento e) {
+    // Novo evento: inicia como orçamento, sem totais
+    if (e.id <= 0) {
+        e.status = EVENTO_STATUS_ORCAMENTO;
+        e.total_estimado = 0.0;
+        e.total_final = 0.0;
+        return pers_salvar_evento(e);
+    } else {
+        // Evento existente: recalcula total estimado com base nas associações atuais
+        e.total_estimado = calcular_total_estimado(e.id);
+        // total_final só muda em finalização; preserva valor existente
+        return pers_salvar_evento(e);
+    }
+}
+
+int evento_listar(Evento *lista, int max) { return pers_carregar_eventos(lista, max); }
+int evento_excluir(int id){ return pers_remover_evento(id); }
+
+// Recalcula total_estimado (e total_final se já finalizado) para um evento existente
+int evento_recalcular_totais(int id) {
+    if (id <= 0) return 0;
+    Evento eventos[512];
+    int n = pers_carregar_eventos(eventos, 512);
+    for (int i = 0; i < n; i++) {
+        if (eventos[i].id == id) {
+            double novo_total = calcular_total_estimado(id);
+            eventos[i].total_estimado = novo_total;
+            if (eventos[i].status == EVENTO_STATUS_FINALIZADO) {
+                eventos[i].total_final = novo_total; // final mantém igual
+            }
+            return pers_salvar_evento(eventos[i]) ? 1 : 0;
+        }
+    }
+    return 0;
+}
+
+
+/* ========================================
+   FUNÇÕES DE APROVAÇÃO E FINALIZAÇÃO
+   ======================================== */
+
+// Aprova um orçamento (verifica conflitos de agenda antes)
+// Retornos:
+//  1  = Aprovado com sucesso
+//  0  = Evento não encontrado
+// -1  = Status inválido (já aprovado ou finalizado)
+// -2  = Conflito de recursos/equipes/fornecedores com outro evento
+int evento_aprovar(int id) {
+    Evento eventos[512];
+    int n = pers_carregar_eventos(eventos, 512);
+    int idx = -1;
+    for (int i = 0; i < n; i++) {
+        if (eventos[i].id == id) { idx = i; break; }
+    }
+    if (idx < 0) return 0;
+    if (eventos[idx].status != EVENTO_STATUS_ORCAMENTO) return -1;
+
+    // Carrega alocações deste evento
+    EventoItem itens[512];
+    int n_itens = pers_carregar_evento_itens(itens, 512);
+    EventoEquipe eqs[512];
+    int n_eqs = pers_carregar_evento_equipes(eqs, 512);
+    EventoFornecedor forn[512];
+    int n_forn = pers_carregar_evento_fornecedores(forn, 512);
+
+    // Para cada outro evento aprovado/finalizado, verifica se compartilha
+    // recurso/equipe/fornecedor no mesmo intervalo de datas
+    for (int j = 0; j < n; j++) {
+        if (j == idx) continue;
+        if (eventos[j].status != EVENTO_STATUS_APROVADO &&
+                eventos[j].status != EVENTO_STATUS_FINALIZADO) continue;
+
+        if (!intervalo_conflita(eventos[idx].data_inicio, eventos[idx].data_fim,
+                                                        eventos[j].data_inicio, eventos[j].data_fim))
+            continue;
+
+        int conflito = 0;
+
+        // Recursos
+        for (int a = 0; a < n_itens && !conflito; a++) {
+            if (itens[a].evento_id != id) continue;
+            for (int b = 0; b < n_itens; b++) {
+                if (itens[b].evento_id != eventos[j].id) continue;
+                if (itens[a].recurso_id == itens[b].recurso_id) { conflito = 1; break; }
+            }
+        }
+
+        // Equipes
+        for (int a = 0; a < n_eqs && !conflito; a++) {
+            if (eqs[a].evento_id != id) continue;
+            for (int b = 0; b < n_eqs; b++) {
+                if (eqs[b].evento_id != eventos[j].id) continue;
+                if (eqs[a].equipe_id == eqs[b].equipe_id) { conflito = 1; break; }
+            }
+        }
+
+        // Fornecedores
+        for (int a = 0; a < n_forn && !conflito; a++) {
+            if (forn[a].evento_id != id) continue;
+            for (int b = 0; b < n_forn; b++) {
+                if (forn[b].evento_id != eventos[j].id) continue;
+                if (forn[a].fornecedor_id == forn[b].fornecedor_id) { conflito = 1; break; }
+            }
+        }
+
+        if (conflito) {
+            return -2; // conflito de agenda/recursos
+        }
+    }
+
+    // Sem conflitos: calcula total estimado e aprova
+    eventos[idx].total_estimado = calcular_total_estimado(eventos[idx].id);
+    eventos[idx].status = EVENTO_STATUS_APROVADO;
+    return pers_salvar_evento(eventos[idx]) ? 1 : 0;
+}
+
+// Finaliza o evento: consolida total_final (pode ser igual ao estimado)
+// Retornos: 1 ok, 0 não encontrado, -1 status inválido
+int evento_finalizar(int id){
+    Evento eventos[512];
+    int n = pers_carregar_eventos(eventos, 512);
+    for (int i = 0; i < n; i++) {
+        if (eventos[i].id == id) {
+            if (eventos[i].status != EVENTO_STATUS_APROVADO) return -1;
+            eventos[i].total_final = calcular_total_estimado(eventos[i].id);
+            eventos[i].status = EVENTO_STATUS_FINALIZADO;
+            return pers_salvar_evento(eventos[i]) ? 1 : 0;
+        }
+    }
+    return 0;
+}
+
+const char* evento_status_para_str(EventoStatus status) {
+    switch (status) {
+        case EVENTO_STATUS_ORCAMENTO:  return "Orçamento";
+        case EVENTO_STATUS_APROVADO:   return "Aprovado";
+        case EVENTO_STATUS_FINALIZADO: return "Finalizado";
+        default: return "Desconhecido";
+    }
+}
