@@ -6,6 +6,7 @@
 #include <iup.h>
 #include <iupcontrols.h>
 #include "../controller/feedback_controller.h"
+#include "../model/pers.h"
 #include "../model/cliente.h"
 #include "../model/evento.h"
 #include "../model/recurso.h"

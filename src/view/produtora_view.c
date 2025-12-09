@@ -21,8 +21,8 @@ static int produtora_salvar_wrap_cb(Ihandle *self) {
     const char* tel = IupGetAttribute(tTel, "VALUE");
     const char* telr = IupGetAttribute(tTelResp, "VALUE");
     if (!ui_valid_cpf_cnpj(cnpj) || (cnpj && (int)strlen(cnpj) < 14)) { IupMessage("Dados inválidos", "CNPJ deve conter 14 dígitos."); return IUP_DEFAULT; }
-    if (tel && tel[0] && !ui_valid_phone(tel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
-    if (telr && telr[0] && !ui_valid_phone(telr)) { IupMessage("Dados inválidos", "Tel. Responsável deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
+    if (tel && tel[0] && !ui_valid_telefone(tel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
+    if (telr && telr[0] && !ui_valid_telefone(telr)) { IupMessage("Dados inválidos", "Tel. Responsável deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
     int rc = produtora_salvar_cb(self);
     if (mat_prod) produtora_recarregar_matriz(mat_prod);
     return rc;

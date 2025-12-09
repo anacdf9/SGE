@@ -214,3 +214,15 @@ int pers_binario_carregar_contas_pagar(ContaPagar *lista, int max){
     while(fread(&temp,sizeof(ContaPagar),1,f)==1){ if(lista && total<max) lista[total]=temp; total++; }
     fclose(f); if(lista) return (total<max)?total:max; return total;
 }
+/* Evento Item - Stubs para persistência binária */
+int pers_binario_salvar_evento_item(EventoItem it) {
+    return 0; /* Não implementado para binário */
+}
+
+int pers_binario_carregar_evento_itens(EventoItem *lista, int max) {
+    return 0; /* Não implementado para binário */
+}
+
+int pers_binario_remover_evento_itens_por_evento(int evento_id) {
+    return 0; /* Não implementado para binário */
+}

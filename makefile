@@ -105,8 +105,14 @@ $(info IUP_DIR: $(IUP_DIR))
 $(info CD_DIR: $(CD_DIR))
 
 # Bibliotecas
-LIBS_WIN = -lgdi32 -lcomctl32 -luser32 -lole32 -mwindows
 LIBS_IUP = -liup -liupcontrols
+
+# Flags condicionais por sistema
+ifeq ($(UNAME_S),Windows)
+	LIBS_WIN = -lgdi32 -lcomctl32 -luser32 -lole32 -mwindows
+else
+	LIBS_WIN =
+endif
 
 # Flags
 CFLAGS = -Wall -g -std=c99 -I$(IUP_INCLUDE_PATH) -Isrc -Isrc/model -Isrc/controller -Isrc/view

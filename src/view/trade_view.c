@@ -199,7 +199,7 @@ static int btn_importar_cb(Ihandle *self) {
             int resposta = IupAlarm(
                 "Confirmação",
                 "Isso sobrescrevará os dados existentes!\nDeseja continuar?",
-                "Sim", "Não"
+                "Sim", "Não", NULL
             );
             if (resposta == 2) {
                 IupDestroy(filedlg);
