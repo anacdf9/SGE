@@ -8,6 +8,7 @@
 #include "operador.h"
 #include "produtora.h"
 #include "evento.h"
+#include "evento_item.h"
 #include "evento_equipe.h"
 #include "evento_fornecedor.h"
 #include "transacoes.h"
@@ -43,6 +44,11 @@ int pers_binario_remover_produtora(void);
 int pers_binario_salvar_evento(Evento e);
 int pers_binario_carregar_eventos(Evento *lista, int max);
 int pers_binario_remover_evento(int id);
+
+/* Evento Item */
+int pers_binario_salvar_evento_item(EventoItem it);
+int pers_binario_carregar_evento_itens(EventoItem *lista, int max);
+int pers_binario_remover_evento_itens_por_evento(int evento_id);
 
 /* Stubs para novas entidades (não implementado em binário) */
 int pers_binario_salvar_evento_equipe(EventoEquipe ee);

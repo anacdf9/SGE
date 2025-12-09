@@ -34,7 +34,7 @@ static int fornecedor_salvar_wrap_cb(Ihandle *self){
     const char* doc = IupGetAttribute(txtDoc, "VALUE");
     const char* tel = IupGetAttribute(txtTel, "VALUE");
     if (!ui_valid_cpf_cnpj(doc)) { IupMessage("Dados inválidos", "Documento deve ser CPF(11) ou CNPJ(14) somente com dígitos."); return IUP_DEFAULT; }
-    if (!ui_valid_phone(tel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
+    if (!ui_valid_telefone(tel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
     fornecedor_salvar_cb(self);
     if (mat_forn) fornecedor_recarregar_matriz(mat_forn);
     return IUP_DEFAULT;

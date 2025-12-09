@@ -51,26 +51,20 @@ Portable User Interface - biblioteca para criar interfaces gráficas em C.
 ### Padrão Típico
 
 ```c
-/* =============================================================================
- * INCLUDES
- * ============================================================================= */
+
 #include <iup.h>
 #include "entidade_view.h"
 #include "../controller/entidade_controller.h"
 #include "ui_common.h"
 #include "validation.h"
 
-/* =============================================================================
- * VARIÁVEIS GLOBAIS DA TELA
- * ============================================================================= */
+
 static Ihandle* dlg_entidade = NULL;
 static Ihandle* txt_nome = NULL;
 static Ihandle* txt_campo = NULL;
 static Ihandle* matrix_lista = NULL;
 
-/* =============================================================================
- * FUNÇÕES AUXILIARES
- * ============================================================================= */
+
 
 void entidade_limpar_campos() {
     IupSetAttribute(txt_nome, "VALUE", "");
@@ -87,9 +81,7 @@ void entidade_carregar_dados(int id) {
     free(e);
 }
 
-/* =============================================================================
- * ATUALIZAÇÃO DE MATRIZ
- * ============================================================================= */
+
 
 void entidade_atualizar_matriz() {
     int total;
@@ -109,9 +101,7 @@ void entidade_atualizar_matriz() {
     free(lista);
 }
 
-/* =============================================================================
- * CALLBACKS DE BOTÕES
- * ============================================================================= */
+
 
 int entidade_salvar_cb(Ihandle* ih) {
     // Obter valores dos campos
@@ -179,9 +169,7 @@ int entidade_excluir_cb(Ihandle* ih) {
     return IUP_DEFAULT;
 }
 
-/* =============================================================================
- * CRIAÇÃO DA INTERFACE
- * ============================================================================= */
+
 
 Ihandle* entidade_criar_formulario() {
     // Labels
@@ -276,9 +264,6 @@ Ihandle* entidade_criar_lista() {
     return vbox;
 }
 
-/* =============================================================================
- * FUNÇÃO PRINCIPAL DA VIEW
- * ============================================================================= */
 
 void entidade_view_show() {
     if (dlg_entidade == NULL) {
@@ -778,6 +763,99 @@ int main(int argc, char** argv) {
     return 0;
 }
 ```
+---
+
+## Views Especiais
+
+### feedback_view.c/h
+
+**Propósito:**
+Interface gráfica para geração de relatórios com filtros avançados, visualização em tela e exportação CSV.
+
+**Componentes Principais:**
+```c
+// Seleção de tipo de relatório
+Ihandle* lst_relatorio;     // List com 7 opções
+
+// Painéis dinâmicos de filtro (aparecem/desaparecem)
+Ihandle* pnl_filtro_cliente;
+Ihandle* pnl_filtro_evento;
+Ihandle* pnl_filtro_recurso;
+// ... para cada tipo de relatório
+
+// Exibição de resultados
+Ihandle* txt_resultado;     // Text com conteúdo formatado
+
+// Ações
+Ihandle* btn_gerar;         // Botão para gerar relatório
+Ihandle* btn_exportar_csv;  // Botão para exportar
+```
+
+**Callbacks Principais:**
+```c
+int feedback_selecao_relatorio_cb(Ihandle* ih);  // Alterna painéis de filtro
+int feedback_gerar_cb(Ihandle* ih);              // Gera e exibe relatório
+int feedback_exportar_csv_cb(Ihandle* ih);       // Abre diálogo de arquivo
+```
+
+**Funcionalidades:**
+- List dropdown para seleção do tipo de relatório
+- Painéis dinâmicos com filtros específicos para cada relatório
+- Text widget com scroll para visualização de resultados formatados
+- File dialog para escolher destino do CSV
+- Validações de entrada (datas, ranges)
+- Formatação automática com colunas alinhadas
+
+### trade_view.c/h
+
+**Propósito:**
+Interface gráfica para importar/exportar dados em formato XML com seleção seletiva de tabelas.
+
+**Componentes Principais:**
+```c
+// Modo de operação
+Ihandle* rd_exportar;       // Radio para modo exportação
+Ihandle* rd_importar;       // Radio para modo importação
+
+// Seleção de tabelas (checkboxes)
+Ihandle* chk_clientes;      // Flag TRADE_TABLE_CLIENTES
+Ihandle* chk_recursos;      // Flag TRADE_TABLE_RECURSOS
+Ihandle* chk_eventos;       // Flag TRADE_TABLE_EVENTOS
+// ... 7 checkboxes adicionais
+
+// Botões auxiliares
+Ihandle* btn_selecionar_todas;    // Marca todas as caixas
+Ihandle* btn_desselecionar_todas; // Desmarca todas as caixas
+
+// Opção para importação
+Ihandle* chk_sobrescrever;  // Marca para substituir dados existentes
+
+// Arquivo
+Ihandle* txt_arquivo;       // Path do arquivo XML
+Ihandle* btn_escolher;      // File dialog para seleção
+
+// Ações
+Ihandle* btn_processar;     // Exportar ou Importar
+```
+
+**Callbacks Principais:**
+```c
+int trade_modo_cb(Ihandle* ih);           // Alterna entre export/import
+int trade_sel_todas_cb(Ihandle* ih);      // Seleciona todas as tabelas
+int trade_desel_todas_cb(Ihandle* ih);    // Desseleciona todas
+int trade_escolher_arquivo_cb(Ihandle* ih); // File dialog
+int trade_processar_cb(Ihandle* ih);      // Executar export/import
+```
+
+**Funcionalidades:**
+- Toggle entre modo exportação e importação
+- 10 checkboxes para seleção de tabelas (com flags bitwise)
+- Botões de atalho para select-all e deselect-all
+- File dialog para escolher arquivo XML
+- Checkbox para opção de sobrescrita na importação
+- Validações antes de processar
+- Mensagens de progresso e confirmação
+- Tratamento de erros com diálogos informativos
 
 ---
 
@@ -794,8 +872,10 @@ src/view/
 ├── operador_view.c/h
 ├── alocacao_view.c/h
 ├── transacoes_view.c/h
-├── ui_common.c/h          # Funções auxiliares de UI
-└── validation.c/h         # Validações de entrada
+├── feedback_view.c/h       # Relatórios e análises
+├── trade_view.c/h          # Importação/Exportação XML
+├── ui_common.c/h           # Funções auxiliares de UI
+└── validation.c/h          # Validações de entrada
 ```
 
 ---

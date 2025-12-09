@@ -95,7 +95,7 @@ static int cliente_salvar_wrap_cb(Ihandle *self) {
         const char* sdoc = IupGetAttribute(txtCpfCnpj, "VALUE");
         const char* stel = IupGetAttribute(txtTelefone, "VALUE");
         if (!ui_valid_cpf_cnpj(sdoc)) { IupMessage("Dados inválidos", "CPF/CNPJ deve conter 11 ou 14 dígitos."); return IUP_DEFAULT; }
-        if (!ui_valid_phone(stel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
+        if (!ui_valid_telefone(stel)) { IupMessage("Dados inválidos", "Telefone deve conter 10 ou 11 dígitos."); return IUP_DEFAULT; }
         cliente_salvar_cb(self);
         if (mat_cliente) cliente_view_recarregar_matriz(mat_cliente);
         return IUP_DEFAULT;
