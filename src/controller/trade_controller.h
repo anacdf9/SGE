@@ -142,4 +142,27 @@ int trade_extrair_tag_valor(const char *tag_line, const char *tag_name, char *ou
  */
 void trade_gerar_tag(const char *tag_name, const char *valor, char *output, int max_len);
 
+/* ========================================================================
+ * FUNÇÕES PARA EXPORTAÇÃO/IMPORTAÇÃO EM FORMATO TEXTO (CSV/TAB-DELIMITADO)
+ * ======================================================================== */
+
+/**
+ * Exporta dados selecionados para arquivo em formato CSV (com delimitador)
+ * @param caminho_arquivo: caminho completo do arquivo CSV a criar
+ * @param tabelas: flags indicando quais tabelas exportar (usar OR para múltiplas)
+ * @param delimitador: caractere delimitador (ex: ',' para CSV, '\t' para TAB)
+ * @return: número de registros exportados, -1 se erro
+ */
+int trade_exportar_csv(const char *caminho_arquivo, int tabelas, char delimitador);
+
+/**
+ * Importa dados de arquivo em formato CSV (com delimitador)
+ * @param caminho_arquivo: caminho completo do arquivo CSV a ler
+ * @param tabelas: flags indicando quais tabelas importar (usar OR para múltiplas)
+ * @param delimitador: caractere delimitador (ex: ',' para CSV, '\t' para TAB)
+ * @param sobrescrever: 1 para sobrescrever dados existentes, 0 para mesclar
+ * @return: número de registros importados, -1 se erro crítico
+ */
+int trade_importar_csv(const char *caminho_arquivo, int tabelas, char delimitador, int sobrescrever);
+
 #endif // TRADE_CONTROLLER_H

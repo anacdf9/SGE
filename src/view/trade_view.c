@@ -28,6 +28,8 @@ static Ihandle *rdb_exportar = NULL;
 static Ihandle *rdb_importar = NULL;
 static Ihandle *chk_sobrescrever = NULL;
 static Ihandle *txt_resultado = NULL;
+static Ihandle *rdb_formato_xml = NULL;
+static Ihandle *rdb_formato_csv = NULL;
 
 
 
@@ -118,11 +120,21 @@ static int btn_exportar_cb(Ihandle *self) {
         return IUP_DEFAULT;
     }
     
+    // Determina formato
+    int usar_csv = (rdb_formato_csv && strcmp(IupGetAttribute(rdb_formato_csv, "VALUE"), "ON") == 0) ? 1 : 0;
+    
     // Diálogo para escolher arquivo
     Ihandle *filedlg = IupFileDlg();
     IupSetAttribute(filedlg, "DIALOGTYPE", "SAVE");
-    IupSetAttribute(filedlg, "EXTFILTER", "XML files|*.xml|All files|*.*");
-    IupSetAttribute(filedlg, "FILE", "dados.xml");
+    
+    if (usar_csv) {
+        IupSetAttribute(filedlg, "EXTFILTER", "CSV files|*.csv|All files|*.*");
+        IupSetAttribute(filedlg, "FILE", "dados.csv");
+    } else {
+        IupSetAttribute(filedlg, "EXTFILTER", "XML files|*.xml|All files|*.*");
+        IupSetAttribute(filedlg, "FILE", "dados.xml");
+    }
+    
     IupPopup(filedlg, IUP_CENTER, IUP_CENTER);
     
     int status = IupGetInt(filedlg, "STATUS");
@@ -131,7 +143,12 @@ static int btn_exportar_cb(Ihandle *self) {
         
         IupSetAttribute(txt_resultado, "VALUE", "Exportando dados...\n");
         
-        int total = trade_exportar_xml(caminho, tabelas);
+        int total;
+        if (usar_csv) {
+            total = trade_exportar_csv(caminho, tabelas, ',');
+        } else {
+            total = trade_exportar_xml(caminho, tabelas);
+        }
         
         if (total >= 0) {
             char msg[256];
@@ -155,10 +172,19 @@ static int btn_importar_cb(Ihandle *self) {
         return IUP_DEFAULT;
     }
     
+    // Determina formato
+    int usar_csv = (rdb_formato_csv && strcmp(IupGetAttribute(rdb_formato_csv, "VALUE"), "ON") == 0) ? 1 : 0;
+    
     // Diálogo para escolher arquivo
     Ihandle *filedlg = IupFileDlg();
     IupSetAttribute(filedlg, "DIALOGTYPE", "OPEN");
-    IupSetAttribute(filedlg, "EXTFILTER", "XML files|*.xml|All files|*.*");
+    
+    if (usar_csv) {
+        IupSetAttribute(filedlg, "EXTFILTER", "CSV files|*.csv|All files|*.*");
+    } else {
+        IupSetAttribute(filedlg, "EXTFILTER", "XML files|*.xml|All files|*.*");
+    }
+    
     IupPopup(filedlg, IUP_CENTER, IUP_CENTER);
     
     int status = IupGetInt(filedlg, "STATUS");
@@ -181,7 +207,12 @@ static int btn_importar_cb(Ihandle *self) {
             }
         }
         
-        int total = trade_importar_xml(caminho, tabelas, sobrescrever);
+        int total;
+        if (usar_csv) {
+            total = trade_importar_csv(caminho, tabelas, ',', sobrescrever);
+        } else {
+            total = trade_importar_xml(caminho, tabelas, sobrescrever);
+        }
         
         if (total >= 0) {
             char msg[256];
@@ -259,10 +290,20 @@ void trade_view_mostrar(void) {
     
     // ========== OPÇÕES ==========
     
+    // Formato de arquivo
+    Ihandle *rb_formato = IupRadio(IupVbox(
+        rdb_formato_xml = IupToggle("XML (padrão)", NULL),
+        rdb_formato_csv = IupToggle("CSV (delimitado por vírgula)", NULL),
+        NULL
+    ));
+    IupSetAttribute(rdb_formato_xml, "VALUE", "ON");
+    
     chk_sobrescrever = IupToggle("Sobrescrever dados existentes na importação", NULL);
     IupSetAttribute(chk_sobrescrever, "VALUE", "OFF");
     
     Ihandle *vbox_opcoes = IupVbox(
+        IupLabel("Formato:"),
+        rb_formato,
         IupLabel("Opções:"),
         chk_sobrescrever,
         NULL

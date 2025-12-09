@@ -1,17 +1,37 @@
 CC ?= cc
-# Seleção automática de compilador disponível no PATH (prioriza 64, depois 32, depois gcc genérico)
-ifeq (,$(shell where $(CC) 2>NUL))
-	ifneq (,$(shell where x86_64-w64-mingw32-gcc 2>NUL))
+# Seleção automática de compilador disponível no PATH
+# Tenta: x86_64-w64-mingw32-gcc (MinGW 64), i686-w64-mingw32-gcc (MinGW 32), gcc (nativo)
+HAVE_CC := $(shell command -v $(CC) 2>/dev/null)
+ifeq ($(HAVE_CC),)
+	HAVE_CC := $(shell command -v x86_64-w64-mingw32-gcc 2>/dev/null)
+	ifneq ($(HAVE_CC),)
 		CC := x86_64-w64-mingw32-gcc
-	else ifneq (,$(shell where i686-w64-mingw32-gcc 2>NUL))
-		CC := i686-w64-mingw32-gcc
-	else ifneq (,$(shell where gcc 2>NUL))
-		CC := gcc
 	else
-		$(error Compiler not found in PATH (tried '$(CC)', x86_64-w64-mingw32-gcc, i686-w64-mingw32-gcc, gcc))
+		HAVE_CC := $(shell command -v i686-w64-mingw32-gcc 2>/dev/null)
+		ifneq ($(HAVE_CC),)
+			CC := i686-w64-mingw32-gcc
+		else
+			HAVE_CC := $(shell command -v gcc 2>/dev/null)
+			ifneq ($(HAVE_CC),)
+				CC := gcc
+			else
+				$(error Compiler not found in PATH)
+			endif
+		endif
 	endif
 endif
-TARGET = SGE.exe
+
+# Determina o executável (MinGW = .exe, Linux = sem extensão)
+ifeq ($(CC),x86_64-w64-mingw32-gcc)
+	TARGET = SGE.exe
+	UNAME_S := Windows
+else ifeq ($(CC),i686-w64-mingw32-gcc)
+	TARGET = SGE.exe
+	UNAME_S := Windows
+else
+	TARGET = SGE
+	UNAME_S := $(shell uname -s)
+endif
 
 # === Detecção de arquitetura e diretórios ===
 # ARCH pode ser: auto | 32 | 64
@@ -20,8 +40,8 @@ ARCH ?= auto
 # Já garantimos a existência do compilador acima
 
 # Detecta triplet do compilador (ex.: i686-w64-mingw32, x86_64-w64-mingw32)
-CC_MACHINE := $(shell $(CC) -dumpmachine 2>NUL)
-TRY_M32 := $(strip $(shell $(CC) -m32 -v 1>NUL 2>NUL && echo yes))
+CC_MACHINE := $(shell $(CC) -dumpmachine 2>/dev/null)
+TRY_M32 := $(strip $(shell $(CC) -m32 -v 1>/dev/null 2>&1 && echo yes))
 
 # Decide a arquitetura alvo
 ifeq ($(ARCH),auto)
@@ -49,7 +69,8 @@ IUP64_INCLUDE := $(CURDIR)/lib/iup64/include
 ifeq ($(TARGET_ARCH),64)
 	ifeq ($(wildcard $(IUP_INCLUDE_PATH)/iup.h),)
 		ifneq ($(wildcard $(IUP32_INCLUDE)/iup.h),)
-			ifneq (,$(shell where i686-w64-mingw32-gcc 2>NUL))
+			HAVE_I686 := $(shell command -v i686-w64-mingw32-gcc 2>/dev/null)
+			ifneq ($(HAVE_I686),)
 				$(info 64-bit IUP SDK not found; falling back to 32-bit toolchain)
 				CC := i686-w64-mingw32-gcc
 				TARGET_ARCH := 32
@@ -146,32 +167,48 @@ IUP_RUNTIME_DLLS = iup.dll iupcontrols.dll iupcd.dll zlib1.dll freetype6.dll ftg
 CD_RUNTIME_DLLS = cd.dll
 
 $(TARGET): $(OBJS)
-	@echo.
-	@echo --- Linkando programa final: $(TARGET) ---
+	@echo ""
+	@echo "--- Linkando programa final: $(TARGET) ---"
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
-	@echo --- Compilacao concluida com sucesso! ---
-	@echo.
-	@echo --- Copiando DLLs de runtime (IUP + CD) ---
-	@for %%D in ($(IUP_RUNTIME_DLLS)) do ( if exist "$(IUP_LIB_PATH)\%%D" copy /Y "$(IUP_LIB_PATH)\%%D" . >nul )
-	@for %%D in ($(CD_RUNTIME_DLLS)) do ( if exist "$(CD_LIB_PATH)\%%D" copy /Y "$(CD_LIB_PATH)\%%D" . >nul )
+	@echo "--- Compilação concluída com sucesso! ---"
+	@echo ""
+ifeq ($(UNAME_S),Windows)
+	@echo "--- Copiando DLLs de runtime (IUP + CD) ---"
+	@for DLL in $(IUP_RUNTIME_DLLS); do \
+		if [ -f "$(IUP_LIB_PATH)/$$DLL" ]; then cp "$(IUP_LIB_PATH)/$$DLL" . ; fi ; \
+	done
+	@for DLL in $(CD_RUNTIME_DLLS); do \
+		if [ -f "$(CD_LIB_PATH)/$$DLL" ]; then cp "$(CD_LIB_PATH)/$$DLL" . ; fi ; \
+	done
+endif
 
 copy-dlls:
-	@echo --- Atualizando DLLs de runtime (se existirem) ---
-	@for %%D in ($(IUP_RUNTIME_DLLS)) do ( if exist "$(IUP_LIB_PATH)\%%D" copy /Y "$(IUP_LIB_PATH)\%%D" . >nul )
-	@for %%D in ($(CD_RUNTIME_DLLS)) do ( if exist "$(CD_LIB_PATH)\%%D" copy /Y "$(CD_LIB_PATH)\%%D" . >nul )
+ifeq ($(UNAME_S),Windows)
+	@echo "--- Atualizando DLLs de runtime (se existirem) ---"
+	@for DLL in $(IUP_RUNTIME_DLLS); do \
+		if [ -f "$(IUP_LIB_PATH)/$$DLL" ]; then cp "$(IUP_LIB_PATH)/$$DLL" . ; fi ; \
+	done
+	@for DLL in $(CD_RUNTIME_DLLS); do \
+		if [ -f "$(CD_LIB_PATH)/$$DLL" ]; then cp "$(CD_LIB_PATH)/$$DLL" . ; fi ; \
+	done
+endif
 
 run: $(TARGET) copy-dlls
-	@echo --- Executando com PATH de IUP/CD preferenciais ---
-	@set "PATH=$(CD_LIB_PATH);$(IUP_LIB_PATH);%PATH%" & .\$(TARGET)
+	@echo "--- Executando programa ---"
+ifeq ($(UNAME_S),Windows)
+	@PATH="$(CD_LIB_PATH):$(IUP_LIB_PATH):$$PATH" ./$(TARGET)
+else
+	@LD_LIBRARY_PATH="$(CD_LIB_PATH):$(IUP_LIB_PATH):$$LD_LIBRARY_PATH" ./$(TARGET)
+endif
 
 %.o: %.c
-	@echo.
-	@echo --- Compilando: $< ---
+	@echo ""
+	@echo "--- Compilando: $< ---"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	@echo.
-	@echo --- Limpando arquivos compilados ---
-	@-del /f /q "$(TARGET)" 2>nul
-	@-del /f /q /s *.o 2>nul
-	@echo --- Limpeza concluida ---
+	@echo ""
+	@echo "--- Limpando arquivos compilados ---"
+	@rm -f $(TARGET)
+	@find . -name "*.o" -delete
+	@echo "--- Limpeza concluída ---"

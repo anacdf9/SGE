@@ -925,3 +925,244 @@ int trade_importar_xml(const char *caminho_arquivo, int tabelas, int sobrescreve
     fclose(fp);
     return total_registros;
 }
+
+/* ========================================================================
+ * FUNÇÕES PARA EXPORTAÇÃO/IMPORTAÇÃO EM FORMATO CSV (TEXTO)
+ * ======================================================================== */
+
+int trade_exportar_csv(const char *caminho_arquivo, int tabelas, char delimitador) {
+    if (!caminho_arquivo || tabelas == 0) return -1;
+    
+    FILE *fp = fopen(caminho_arquivo, "w");
+    if (!fp) return -1;
+    
+    int total_registros = 0;
+    
+    // Clientes
+    if (tabelas & TRADE_TABLE_CLIENTES) {
+        Cliente clientes[1024];
+        int total = pers_carregar_clientes(clientes, 1024);
+        
+        if (total > 0) {
+            // Cabeçalho
+            fprintf(fp, "ID%cNOME%cCPF_CNPJ%cEMAIL%cTELEFONE%cCEP%cCIDADE%cESTADO%cTIPO\n", 
+                delimitador, delimitador, delimitador, delimitador, delimitador, delimitador, delimitador, delimitador);
+            
+            // Dados
+            for (int i = 0; i < total; i++) {
+                fprintf(fp, "%d%c%s%c%s%c%s%c%s%c%s%c%s%c%s%c%d\n",
+                    clientes[i].id, delimitador,
+                    clientes[i].nome, delimitador,
+                    clientes[i].cpf_cnpj, delimitador,
+                    clientes[i].email, delimitador,
+                    clientes[i].telefone, delimitador,
+                    clientes[i].cep, delimitador,
+                    clientes[i].cidade, delimitador,
+                    clientes[i].estado, delimitador,
+                    clientes[i].tipo);
+                total_registros++;
+            }
+            fprintf(fp, "\n");
+        }
+    }
+    
+    // Equipamentos/Recursos
+    if (tabelas & TRADE_TABLE_EQUIPAMENTOS) {
+        Recurso recursos[1024];
+        int total = pers_carregar_recursos(recursos, 1024);
+        
+        if (total > 0) {
+            fprintf(fp, "ID%cDESCRICAO%cCATEGORIA%cVALOR_ALUGUEL%cQTD_DISPONIVEL\n",
+                delimitador, delimitador, delimitador, delimitador);
+            
+            for (int i = 0; i < total; i++) {
+                fprintf(fp, "%d%c%s%c%s%c%.2f%c%d\n",
+                    recursos[i].id, delimitador,
+                    recursos[i].descricao, delimitador,
+                    recursos[i].categoria, delimitador,
+                    recursos[i].valor_aluguel, delimitador,
+                    recursos[i].qtd_disponivel);
+                total_registros++;
+            }
+            fprintf(fp, "\n");
+        }
+    }
+    
+    // Fornecedores
+    if (tabelas & TRADE_TABLE_FORNECEDORES) {
+        Fornecedor fornecedores[1024];
+        int total = pers_carregar_fornecedores(fornecedores, 1024);
+        
+        if (total > 0) {
+            fprintf(fp, "ID%cNOME_FANTASIA%cCNPJ%cCONTATO%cTELEFONE%cEMAIL%cCIDADE\n",
+                delimitador, delimitador, delimitador, delimitador, delimitador, delimitador);
+            
+            for (int i = 0; i < total; i++) {
+                fprintf(fp, "%d%c%s%c%s%c%s%c%s%c%s%c%s\n",
+                    fornecedores[i].id, delimitador,
+                    fornecedores[i].nome_fantasia, delimitador,
+                    fornecedores[i].cnpj, delimitador,
+                    fornecedores[i].contato, delimitador,
+                    fornecedores[i].telefone, delimitador,
+                    fornecedores[i].email, delimitador,
+                    fornecedores[i].cidade);
+                total_registros++;
+            }
+            fprintf(fp, "\n");
+        }
+    }
+    
+    fclose(fp);
+    return total_registros;
+}
+
+int trade_importar_csv(const char *caminho_arquivo, int tabelas, char delimitador, int sobrescrever) {
+    if (!caminho_arquivo || tabelas == 0) return -1;
+    
+    FILE *fp = fopen(caminho_arquivo, "r");
+    if (!fp) return -1;
+    
+    int total_registros = 0;
+    char linha[2048];
+    
+    // Lê cabeçalho para identificar qual tabela está sendo importada
+    if (fgets(linha, sizeof(linha), fp) == NULL) {
+        fclose(fp);
+        return -1;
+    }
+    
+    // Identifica tipo de tabela pelo cabeçalho
+    if (strstr(linha, "NOME") && strstr(linha, "CPF_CNPJ")) {
+        // Tabela de clientes
+        if (!(tabelas & TRADE_TABLE_CLIENTES)) {
+            fclose(fp);
+            return 0;
+        }
+        
+        if (sobrescrever) {
+            Cliente clientes[1024];
+            int total = pers_carregar_clientes(clientes, 1024);
+            for (int i = 0; i < total; i++) {
+                pers_deletar_cliente(clientes[i].id);
+            }
+        }
+        
+        while (fgets(linha, sizeof(linha), fp)) {
+            if (strlen(linha) <= 1 || linha[0] == '\n') break; // Fim da tabela
+            
+            Cliente cliente;
+            char *ptr = linha;
+            char *token;
+            int campo = 0;
+            
+            // Parse linha separada por delimitador
+            token = strtok(ptr, &delimitador);
+            while (token && campo < 9) {
+                switch (campo) {
+                    case 0: cliente.id = atoi(token); break;
+                    case 1: strncpy(cliente.nome, token, sizeof(cliente.nome)-1); break;
+                    case 2: strncpy(cliente.cpf_cnpj, token, sizeof(cliente.cpf_cnpj)-1); break;
+                    case 3: strncpy(cliente.email, token, sizeof(cliente.email)-1); break;
+                    case 4: strncpy(cliente.telefone, token, sizeof(cliente.telefone)-1); break;
+                    case 5: strncpy(cliente.cep, token, sizeof(cliente.cep)-1); break;
+                    case 6: strncpy(cliente.cidade, token, sizeof(cliente.cidade)-1); break;
+                    case 7: strncpy(cliente.estado, token, sizeof(cliente.estado)-1); break;
+                    case 8: cliente.tipo = atoi(token); break;
+                }
+                token = strtok(NULL, &delimitador);
+                campo++;
+            }
+            
+            if (pers_salvar_cliente(cliente)) {
+                total_registros++;
+            }
+        }
+    }
+    else if (strstr(linha, "DESCRICAO") && strstr(linha, "CATEGORIA")) {
+        // Tabela de recursos/equipamentos
+        if (!(tabelas & TRADE_TABLE_EQUIPAMENTOS)) {
+            fclose(fp);
+            return 0;
+        }
+        
+        if (sobrescrever) {
+            Recurso recursos[1024];
+            int total = pers_carregar_recursos(recursos, 1024);
+            for (int i = 0; i < total; i++) {
+                pers_deletar_recurso(recursos[i].id);
+            }
+        }
+        
+        while (fgets(linha, sizeof(linha), fp)) {
+            if (strlen(linha) <= 1 || linha[0] == '\n') break;
+            
+            Recurso recurso;
+            char *ptr = linha;
+            char *token;
+            int campo = 0;
+            
+            token = strtok(ptr, &delimitador);
+            while (token && campo < 5) {
+                switch (campo) {
+                    case 0: recurso.id = atoi(token); break;
+                    case 1: strncpy(recurso.descricao, token, sizeof(recurso.descricao)-1); break;
+                    case 2: strncpy(recurso.categoria, token, sizeof(recurso.categoria)-1); break;
+                    case 3: recurso.valor_aluguel = atof(token); break;
+                    case 4: recurso.qtd_disponivel = atoi(token); break;
+                }
+                token = strtok(NULL, &delimitador);
+                campo++;
+            }
+            
+            if (pers_salvar_recurso(recurso)) {
+                total_registros++;
+            }
+        }
+    }
+    else if (strstr(linha, "NOME_FANTASIA") && strstr(linha, "CNPJ")) {
+        // Tabela de fornecedores
+        if (!(tabelas & TRADE_TABLE_FORNECEDORES)) {
+            fclose(fp);
+            return 0;
+        }
+        
+        if (sobrescrever) {
+            Fornecedor fornecedores[1024];
+            int total = pers_carregar_fornecedores(fornecedores, 1024);
+            for (int i = 0; i < total; i++) {
+                pers_deletar_fornecedor(fornecedores[i].id);
+            }
+        }
+        
+        while (fgets(linha, sizeof(linha), fp)) {
+            if (strlen(linha) <= 1 || linha[0] == '\n') break;
+            
+            Fornecedor fornecedor;
+            char *ptr = linha;
+            char *token;
+            int campo = 0;
+            
+            token = strtok(ptr, &delimitador);
+            while (token && campo < 7) {
+                switch (campo) {
+                    case 0: fornecedor.id = atoi(token); break;
+                    case 1: strncpy(fornecedor.nome_fantasia, token, sizeof(fornecedor.nome_fantasia)-1); break;
+                    case 2: strncpy(fornecedor.cnpj, token, sizeof(fornecedor.cnpj)-1); break;
+                    case 3: strncpy(fornecedor.contato, token, sizeof(fornecedor.contato)-1); break;
+                    case 4: strncpy(fornecedor.telefone, token, sizeof(fornecedor.telefone)-1); break;
+                    case 5: strncpy(fornecedor.email, token, sizeof(fornecedor.email)-1); break;
+                    case 6: strncpy(fornecedor.cidade, token, sizeof(fornecedor.cidade)-1); break;
+                }
+                token = strtok(NULL, &delimitador);
+                campo++;
+            }
+            
+            if (pers_salvar_fornecedor(fornecedor)) {
+                total_registros++;
+            }
+        }
+    }
+    
+    fclose(fp);
+    return total_registros;
+}
