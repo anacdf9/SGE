@@ -25,6 +25,8 @@
 #include "src/view/produtora_view.h"
 #include "src/view/evento_view.h"
 #include "src/view/transacoes_view.h"
+#include "src/view/feedback_view.h"
+#include "src/view/trade_view.h"
 
 /* Includes de Configuração */
 #include "src/config.h"
@@ -99,6 +101,22 @@ int btn_abrir_transacoes_cb(void) {
 }
 
 /*
+ * Abre o módulo de Feedback com relatórios
+ */
+int btn_abrir_feedback_cb(void) {
+    feedback_view_mostrar();
+    return IUP_DEFAULT;
+}
+
+/*
+ * Abre o módulo de Importação/Exportação
+ */
+int btn_abrir_trade_cb(void) {
+    trade_view_mostrar();
+    return IUP_DEFAULT;
+}
+
+/*
  * Fecha o sistema
  */
 int btn_sair_cb(void) {
@@ -139,6 +157,14 @@ int main(int argc, char **argv) {
             IupItem("Abrir módulo", "btn_abrir_transacoes_cb"),
             NULL
         )),
+        IupSubmenu("Relatórios", IupMenu(
+            IupItem("Feedback e Relatórios", "btn_abrir_feedback_cb"),
+            NULL
+        )),
+        IupSubmenu("Dados", IupMenu(
+            IupItem("Importar/Exportar XML", "btn_abrir_trade_cb"),
+            NULL
+        )),
         NULL
     );
 
@@ -169,6 +195,8 @@ int main(int argc, char **argv) {
     IupSetFunction("btn_abrir_produtora_cb", (Icallback)btn_abrir_produtora_cb);
     IupSetFunction("btn_abrir_eventos_cb", (Icallback)btn_abrir_eventos_cb);
     IupSetFunction("btn_abrir_transacoes_cb", (Icallback)btn_abrir_transacoes_cb);
+    IupSetFunction("btn_abrir_feedback_cb", (Icallback)btn_abrir_feedback_cb);
+    IupSetFunction("btn_abrir_trade_cb", (Icallback)btn_abrir_trade_cb);
     IupSetFunction("btn_sair_cb", (Icallback)btn_sair_cb);
 
     IupShowXY(dlg_main, IUP_CENTER, IUP_CENTER);

@@ -252,6 +252,150 @@ Custo: R$ 100,00
 
 ---
 
+## Módulo de Feedback (Relatórios)
+
+### Gerar Relatório de Clientes
+
+1. Menu Ferramentas > Feedback (Relatórios)
+2. Selecione na lista: "Clientes"
+3. Configure filtros (opcional):
+   - Tipo: "Pessoa Jurídica"
+   - Status: "Ativos"
+   - Período: deixe em branco para todos
+4. Clique "Gerar Relatório"
+5. Os dados aparecem na tela, você pode:
+   - **Visualizar:** Scroll na área de texto
+   - **Exportar CSV:** Clique "Exportar para CSV" e escolha local do arquivo
+
+### Gerar Relatório de Eventos
+
+1. Menu Ferramentas > Feedback (Relatórios)
+2. Selecione na lista: "Eventos"
+3. Configure filtros:
+   - Status: "Finalizado" (para eventos encerrados)
+   - Cliente: Selecione um cliente específico ou deixe em branco
+   - Valor: Mín. 1000, Máx. 5000 (para eventos nessa faixa)
+   - Período: 01/01/2024 até 31/12/2024
+4. Clique "Gerar Relatório"
+
+### Relatório de Caixa (Fluxo Financeiro)
+
+1. Menu Ferramentas > Feedback (Relatórios)
+2. Selecione na lista: "Caixa"
+3. Defina período desejado
+4. Os dados mostram:
+   - Todas as entradas e saídas
+   - Saldo acumulado
+   - Categorias
+
+### Exportar para CSV (Excel)
+
+Todos os relatórios podem ser exportados:
+1. Após gerar o relatório
+2. Clique em "Exportar para CSV"
+3. Escolha a pasta e nome do arquivo
+4. O arquivo será criado com extensão .csv
+5. Abra no Excel, Google Sheets ou editor de texto
+
+**Dica:** Use ponto-e-vírgula (;) como delimitador se importar no Excel.
+
+---
+
+## Módulo de Trade (Importação/Exportação XML)
+
+### Exportar Dados
+
+1. Menu Ferramentas > Trade (Importação/Exportação)
+2. Certifique-se que "Exportar" está selecionado
+3. Marque as tabelas que quer exportar:
+   - ☐ Clientes
+   - ☐ Recursos
+   - ☐ Eventos
+   - ☐ Fornecedores
+   - ☐ Equipes
+   - ☐ Operadores
+   - ☐ Compras
+   - ☐ Contas a Receber
+   - ☐ Contas a Pagar
+   - ☐ Caixa
+4. Use "Selecionar Todas" se quiser tudo
+5. Clique "Escolher Arquivo"
+6. Digite nome como: `backup_2024.xml`
+7. Clique "Exportar"
+
+### Importar Dados
+
+1. Menu Ferramentas > Trade (Importação/Exportação)
+2. Selecione "Importar"
+3. Marque as tabelas que quer importar
+4. Opção de sobrescrita:
+   - ☑ Sobrescrever: substitui dados existentes
+   - ☐ Manter: mantém dados atuais, ignora duplicatas
+5. Clique "Escolher Arquivo"
+6. Selecione um arquivo XML exportado
+7. Clique "Importar"
+
+### Exemplo de Arquivo XML
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<sge>
+    <clientes>
+        <cliente>
+            <id>1</id>
+            <nome>João Silva</nome>
+            <cpf_cnpj>123.456.789-00</cpf_cnpj>
+            <telefone>(11) 91234-5678</telefone>
+            <email>joao@email.com</email>
+            <tipo_pessoa>0</tipo_pessoa>
+            <ativo>1</ativo>
+        </cliente>
+    </clientes>
+    <recursos>
+        <recurso>
+            <id>1</id>
+            <nome>Microfone Shure SM58</nome>
+            <descricao>Microfone dinâmico cardióide</descricao>
+            <quantidade>10</quantidade>
+            <preco_locacao>50.00</preco_locacao>
+            <ativo>1</ativo>
+        </recurso>
+    </recursos>
+</sge>
+```
+
+### Caracteres Especiais
+
+O sistema escapa automaticamente:
+- `&` vira `&amp;`
+- `<` vira `&lt;`
+- `>` vira `&gt;`
+- `"` vira `&quot;`
+- `'` vira `&apos;`
+
+Exemplo:
+```xml
+<descricao>Aluguel de som &amp; luz para "eventos especiais"</descricao>
+```
+
+### Backup e Recuperação
+
+**Fazer backup:**
+1. Menu Ferramentas > Trade > Exportar
+2. Selecione "Selecionar Todas"
+3. Salve em local seguro como `backup_completo_2024.xml`
+
+**Recuperar de backup:**
+1. Menu Ferramentas > Trade > Importar
+2. Marque "Sobrescrever"
+3. Selecione "Selecionar Todas"
+4. Escolha o arquivo de backup
+5. Importe
+
+**Dica:** Faça backups periódicos (semanal/mensal)
+
+---
+
 ## Dicas
 
 ### Preços de Locação

@@ -87,21 +87,27 @@ Configuração de build
 Gerados automaticamente pelo sistema (na raiz):
 
 ```
-clientes.txt           # Cadastro de clientes
-recursos.txt           # Equipamentos e estoque
-eventos.txt            # Eventos e orçamentos
-eventos_itens.txt      # Recursos alocados em eventos
-eventos_equipes.txt    # Equipe alocada em eventos
-eventos_fornecedores.txt # Fornecedores contratados
-caixa.txt             # Lançamentos de caixa
-compras.txt           # Compras de equipamentos
-compras_itens.txt     # Itens das compras
-contas_receber.txt    # Contas a receber
-contas_pagar.txt      # Contas a pagar
-produtora.txt         # Dados da produtora
-equipes.txt           # Equipe interna
-fornecedores.txt      # Fornecedores/parceiros
-operadores.txt        # Usuários do sistema
+clientes.txt              # Cadastro de clientes
+recursos.txt              # Equipamentos e estoque
+eventos.txt               # Eventos e orçamentos
+eventos_itens.txt         # Recursos alocados em eventos
+eventos_equipes.txt       # Equipe alocada em eventos
+eventos_fornecedores.txt  # Fornecedores contratados
+caixa.txt                 # Lançamentos de caixa
+compras.txt               # Compras de equipamentos
+compras_itens.txt         # Itens das compras
+contas_receber.txt        # Contas a receber
+contas_pagar.txt          # Contas a pagar
+produtora.txt             # Dados da produtora
+equipes.txt               # Equipe interna
+fornecedores.txt          # Fornecedores/parceiros
+operadores.txt            # Usuários do sistema
+```
+
+**Arquivos Auxiliares:**
+```
+EXEMPLO_IMPORTACAO.xml    # Exemplo de estrutura XML para Trade
+eventos_export.csv        # Exemplo de exportação CSV de Feedback
 ```
 
 ---
@@ -139,6 +145,8 @@ SGE/
     │   ├── produtora_controller.c/h
     │   ├── alocacao_controller.c/h
     │   ├── transacoes_controller.c/h
+    │   ├── feedback_controller.c/h    # Relatórios e análises
+    │   ├── trade_controller.c/h       # Import/Export XML
     │   └── README.md
     └── view/                 # Camada de interface
         ├── cliente_view.c/h
@@ -150,8 +158,10 @@ SGE/
         ├── produtora_view.c/h
         ├── alocacao_view.c/h
         ├── transacoes_view.c/h
-        ├── ui_common.c/h     # Funções comuns de UI
-        ├── validation.c/h    # Validações de entrada
+        ├── feedback_view.c/h          # Interface de relatórios
+        ├── trade_view.c/h             # Interface de import/export
+        ├── ui_common.c/h              # Funções comuns de UI
+        ├── validation.c/h             # Validações de entrada
         └── README.md
 ```
 
@@ -217,6 +227,105 @@ void funcao_principal() { ... }
 
 /* Callback de botão */
 int botao_cb(Ihandle* ih) { ... }
+```
+
+---
+
+## Módulos Especiais
+
+### Feedback (Relatórios)
+
+**Localização:**
+- Controller: `src/controller/feedback_controller.c/h`
+- View: `src/view/feedback_view.c/h`
+
+**Funcionalidades:**
+- 7 tipos de relatórios: Clientes, Eventos, Recursos, Contas a Receber, Contas a Pagar, Caixa, Resumo Financeiro
+- Filtros avançados por status, período, faixa de valores
+- Exportação para CSV (formato compatível com Excel)
+- Visualização em tela com formatação
+
+**Estruturas:**
+```c
+typedef struct {
+    int filtrar_tipo;        // Filtro por tipo
+    int filtrar_ativo;       // Filtro por status
+    char data_inicio[11];    // YYYY-MM-DD
+    char data_fim[11];       // YYYY-MM-DD
+} FiltroCliente;
+
+// Outras estruturas: FiltroEvento, FiltroRecurso, etc.
+```
+
+**Funções Principais:**
+```c
+char* feedback_relatorio_clientes(FiltroCliente* filtro);
+int feedback_exportar_clientes_csv(FiltroCliente* filtro, char* arquivo);
+```
+
+**Como usar:**
+1. Menu Ferramentas > Feedback
+2. Selecione tipo de relatório
+3. Configure filtros
+4. Gerar ou Exportar CSV
+
+### Trade (Importação/Exportação XML)
+
+**Localização:**
+- Controller: `src/controller/trade_controller.c/h`
+- View: `src/view/trade_view.c/h`
+
+**Funcionalidades:**
+- Exportar/Importar 10 tabelas: Clientes, Recursos, Eventos, Fornecedores, Equipes, Operadores, Compras, Contas Receber, Contas Pagar, Caixa
+- Seleção seletiva de tabelas via flags bitwise
+- Escaping automático de caracteres XML (&, <, >, ", ')
+- Opção de sobrescrita na importação
+- Validação de estrutura XML
+
+**Flags de Tabela:**
+```c
+typedef enum {
+    TRADE_TABLE_CLIENTES      = 0x01,   // 00000001
+    TRADE_TABLE_RECURSOS      = 0x02,   // 00000010
+    TRADE_TABLE_EVENTOS       = 0x04,   // 00000100
+    TRADE_TABLE_FORNECEDORES  = 0x08,   // 00001000
+    TRADE_TABLE_EQUIPES       = 0x10,   // 00010000
+    TRADE_TABLE_OPERADORES    = 0x20,   // 00100000
+    TRADE_TABLE_COMPRAS       = 0x40,   // 01000000
+    TRADE_TABLE_CONTAS_REC    = 0x80,   // 10000000
+    TRADE_TABLE_CONTAS_PAG    = 0x100,  // 100000000
+    TRADE_TABLE_CAIXA         = 0x200   // 1000000000
+} TradeTable;
+```
+
+**Funções Principais:**
+```c
+int trade_exportar_xml(const char* arquivo, int tabelas_selecionadas);
+int trade_importar_xml(const char* arquivo, int tabelas_selecionadas, int sobrescrever);
+char* trade_escape_xml(const char* texto);
+char* trade_unescape_xml(const char* texto);
+```
+
+**Como usar:**
+1. Menu Ferramentas > Trade
+2. Escolha Exportar ou Importar
+3. Marque tabelas desejadas
+4. Escolha arquivo XML
+5. Execute operação
+
+**Formato XML:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<sge>
+    <clientes>
+        <cliente>
+            <id>1</id>
+            <nome>Nome do Cliente</nome>
+            <!-- outros campos -->
+        </cliente>
+    </clientes>
+    <!-- outras tabelas -->
+</sge>
 ```
 
 ---
@@ -291,6 +400,51 @@ Escolha em `src/config.h`:
 1. Criar função no controller correspondente
 2. Criar função de view que chama o controller
 3. Adicionar botão ou item de menu
+
+### Adicionar Novo Relatório
+
+1. Definir estrutura de filtro em `feedback_controller.h`
+2. Criar função `feedback_relatorio_NOME()` no controller
+3. Criar função `feedback_exportar_NOME_csv()` no controller
+4. Adicionar opção na lista da interface `feedback_view.c`
+5. Criar painel de filtro correspondente na view
+6. Testar com dados reais
+
+**Exemplo:**
+```c
+// feedback_controller.h
+typedef struct {
+    int filtro_campo;
+    char data_inicio[11];
+    char data_fim[11];
+} FiltroNovo;
+
+char* feedback_relatorio_novo(FiltroNovo* filtro);
+int feedback_exportar_novo_csv(FiltroNovo* filtro, char* arquivo);
+```
+
+### Adicionar Nova Tabela ao Trade
+
+1. Definir nova flag em `trade_controller.h`:
+   ```c
+   #define TRADE_TABLE_NOVA 0x400  // próximo bit disponível
+   ```
+2. Criar função `trade_exportar_nova_xml(FILE* fp)` no controller
+3. Criar função `trade_importar_nova_xml(FILE* fp, int sobrescrever)` no controller
+4. Adicionar checkbox na interface `trade_view.c`
+5. Atualizar funções principais para verificar a nova flag
+6. Testar exportação e importação
+
+**Estrutura XML:**
+```xml
+<nova>
+    <item>
+        <id>1</id>
+        <campo1>valor1</campo1>
+        <campo2>valor2</campo2>
+    </item>
+</nova>
+```
 
 ### Adicionar Novo Tipo de Persistência
 

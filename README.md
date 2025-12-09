@@ -143,6 +143,47 @@ Veja mais detalhes em `COMPILACAO.md`
 - Controle de parcelas
 - Baixa de pagamentos
 
+### 4. Feedback e Relatórios
+
+**7 Tipos de Relatórios**
+- Clientes: listagem com filtros por atividade, tipo (PF/PJ) e período de cadastro
+- Eventos: listagem com filtros por status, cliente, período e faixa de valor
+- Recursos: listagem com filtros por tipo, quantidade mínima e valor
+- Contas a Receber: listagem com filtros por status, período, faixa de valor
+- Contas a Pagar: listagem com filtros por status, período, vencimento
+- Caixa: movimentações com filtros por período, tipo (entrada/saída), categoria
+- Resumo Financeiro: saldo geral, totalizações por categoria, período configurável
+
+**Funcionalidades**
+- Visualização em tela com formatação
+- Exportação para CSV (compatível com Excel)
+- Filtros avançados e reutilizáveis
+
+### 5. Trade (Importação/Exportação)
+
+**Formato de Dados**
+- Arquivos XML com estrutura bem definida
+- Escaping automático de caracteres especiais (&, <, >, ", ')
+- Validação e tratamento de erros
+
+**Tabelas Suportadas**
+- Clientes
+- Recursos
+- Eventos
+- Fornecedores
+- Equipes
+- Operadores
+- Compras
+- Contas a Receber
+- Contas a Pagar
+- Caixa
+
+**Funcionalidades**
+- Seleção seletiva (exportar/importar apenas as tabelas desejadas)
+- Opção de sobrescrita (manter dados existentes ou substituir)
+- Validação de dados antes da importação
+- Tratamento de conflitos de ID
+
 ---
 
 ## Cálculo de Preço de Locação
@@ -249,12 +290,16 @@ SGE/
     │   ├── cliente_controller.c/h
     │   ├── evento_controller.c/h
     │   ├── recurso_controller.c/h
-    │   └── transacoes_controller.c/h
+    │   ├── transacoes_controller.c/h
+    │   ├── feedback_controller.c/h
+    │   └── trade_controller.c/h
     └── view/
         ├── cliente_view.c/h
         ├── evento_view.c/h
         ├── recurso_view.c/h
         ├── transacoes_view.c/h
+        ├── feedback_view.c/h
+        ├── trade_view.c/h
         ├── ui_common.c/h
         └── validation.c/h
 ```
