@@ -102,6 +102,8 @@ SRCS = \
 	src/controller/produtora_controller.c \
 	src/controller/evento_controller.c \
 	src/controller/transacoes_controller.c \
+	src/controller/feedback_controller.c \
+	src/controller/trade_controller.c \
 	src/model/cliente.c \
 	src/model/pers.c \
 	src/model/pers_memoria.c \
@@ -116,6 +118,8 @@ SRCS = \
 	src/view/evento_view.c \
 	src/view/transacoes_view.c \
 	src/view/produtora_view.c \
+	src/view/feedback_view.c \
+	src/view/trade_view.c \
 	src/view/ui_common.c \
 	src/view/validation.c
 

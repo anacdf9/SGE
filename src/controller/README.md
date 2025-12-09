@@ -167,6 +167,107 @@ int alocacao_equipe_adicionar(int id_evento, int id_equipe, float horas);
 int alocacao_fornecedor_adicionar(int id_evento, int id_fornecedor, char* desc, float valor);
 ```
 
+### feedback_controller.c/h
+
+**Propósito:**
+Gera relatórios analíticos de todas as entidades do sistema com filtros avançados e exportação para CSV.
+
+**Estruturas de Filtro:**
+```c
+typedef struct {
+    int filtrar_tipo;        // 0=nenhum, 1=PF, 2=PJ
+    int filtrar_ativo;       // -1=todos, 0=inativos, 1=ativos
+    char data_inicio[11];    // YYYY-MM-DD
+    char data_fim[11];       // YYYY-MM-DD
+} FiltroCliente;
+
+typedef struct {
+    int filtrar_status;      // 0=todos, 1=Orçamento, 2=Aprovado, 3=Finalizado
+    int id_cliente;          // 0=todos
+    float valor_min, valor_max;
+    char data_inicio[11];
+    char data_fim[11];
+} FiltroEvento;
+```
+
+**Funções Principais:**
+```c
+// Gerar relatórios (retorna string formatada)
+char* feedback_relatorio_clientes(FiltroCliente* filtro);
+char* feedback_relatorio_eventos(FiltroEvento* filtro);
+char* feedback_relatorio_recursos(FiltroRecurso* filtro);
+char* feedback_relatorio_contas_receber(FiltroContaReceber* filtro);
+char* feedback_relatorio_contas_pagar(FiltroContaPagar* filtro);
+char* feedback_relatorio_caixa(FiltroCaixa* filtro);
+char* feedback_relatorio_resumo(FiltroResumo* filtro);
+
+// Exportar para CSV
+int feedback_exportar_clientes_csv(FiltroCliente* filtro, char* arquivo);
+int feedback_exportar_eventos_csv(FiltroEvento* filtro, char* arquivo);
+// ... outras exportações
+```
+
+**Responsabilidades:**
+- Filtrar dados baseado em critérios
+- Formatar saída com alinhamento e padding
+- Gerar cabeçalhos de colunas
+- Ordenar alfabeticamente quando necessário
+- Exportar para CSV com delimitador `;`
+- Validar ranges de datas
+- Buscar dados auxiliares (nomes, descrições)
+
+### trade_controller.c/h
+
+**Propósito:**
+Importar e exportar dados em formato XML com seleção seletiva de tabelas e validação de caracteres especiais.
+
+**Enumeração de Tabelas:**
+```c
+typedef enum {
+    TRADE_TABLE_CLIENTES      = 0x01,
+    TRADE_TABLE_RECURSOS      = 0x02,
+    TRADE_TABLE_EVENTOS       = 0x04,
+    TRADE_TABLE_FORNECEDORES  = 0x08,
+    TRADE_TABLE_EQUIPES       = 0x10,
+    TRADE_TABLE_OPERADORES    = 0x20,
+    TRADE_TABLE_COMPRAS       = 0x40,
+    TRADE_TABLE_CONTAS_REC    = 0x80,
+    TRADE_TABLE_CONTAS_PAG    = 0x100,
+    TRADE_TABLE_CAIXA         = 0x200
+} TradeTable;
+```
+
+**Funções Principais:**
+```c
+// Exportação
+int trade_exportar_xml(const char* arquivo, int tabelas_selecionadas);
+int trade_exportar_clientes_xml(FILE* fp);
+int trade_exportar_recursos_xml(FILE* fp);
+// ... outras tabelas
+
+// Importação
+int trade_importar_xml(const char* arquivo, int tabelas_selecionadas, int sobrescrever);
+int trade_importar_clientes_xml(FILE* fp, int sobrescrever);
+int trade_importar_recursos_xml(FILE* fp, int sobrescrever);
+// ... outras tabelas
+
+// Utilitários de XML
+char* trade_escape_xml(const char* texto);
+char* trade_unescape_xml(const char* texto);
+char* trade_extrair_tag(const char* xml, const char* tag);
+char* trade_gerar_tag(const char* tag, const char* valor);
+```
+
+**Responsabilidades:**
+- Gerar XML bem formado com estrutura definida
+- Escapar caracteres especiais: &, <, >, ", '
+- Parsear XML com validação de tags
+- Suportar seleção seletiva via flags bitwise
+- Validar dados antes da importação
+- Oferecer opção de sobrescrita
+- Tratamento de conflitos de ID
+- Manter integridade referencial
+
 ---
 
 ## Padrão de Implementação

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dados>
+  <!-- Tabela de Clientes -->
+  <tabela-cliente>
+    <registro>
+      <codigo>1</codigo>
+      <nome>ACME Corporation S.A.</nome>
+      <endereco>Av. Afonso Pena, 1500, Centro, Belo Horizonte, MG</endereco>
+      <cpf_cnpj>11.222.333/0001-44</cpf_cnpj>
+      <telefone>3133221100</telefone>
+      <email>contato@acme.com.br</email>
+      <contato>Fulano de Tal</contato>
+    </registro>
+    <registro>
+      <codigo>2</codigo>
+      <nome>Tech Solutions Ltda</nome>
+      <endereco>Rua das Flores, 250, São Paulo, SP</endereco>
+      <cpf_cnpj>22.333.444/0001-55</cpf_cnpj>
+      <telefone>1133334444</telefone>
+      <email>info@techsol.com.br</email>
+      <contato>Ciclano Silva</contato>
+    </registro>
+  </tabela-cliente>
+
+  <!-- Tabela de Equipamentos -->
+  <tabela-equipamento>
+    <registro>
+      <codigo>101</codigo>
+      <descricao>Caixa de Som Ativa 15 polegadas</descricao>
+      <categoria>Sonorização</categoria>
+      <quantidade_estoque>12</quantidade_estoque>
+      <preco_custo>3500.00</preco_custo>
+      <valor_locacao>200.00</valor_locacao>
+    </registro>
+    <registro>
+      <codigo>102</codigo>
+      <descricao>Projetor Multimídia 3000 Lumens</descricao>
+      <categoria>Projeção</categoria>
+      <quantidade_estoque>5</quantidade_estoque>
+      <preco_custo>2500.00</preco_custo>
+      <valor_locacao>150.00</valor_locacao>
+    </registro>
+  </tabela-equipamento>
+
+  <!-- Tabela de Eventos -->
+  <tabela-evento>
+    <registro>
+      <codigo>1</codigo>
+      <nome>Conferência Anual ACME</nome>
+      <cliente_id>1</cliente_id>
+      <data_inicio>2025-12-15</data_inicio>
+      <data_fim>2025-12-17</data_fim>
+      <local>Centro de Convenções, Belo Horizonte</local>
+      <status>Aprovado</status>
+      <total_estimado>15000.00</total_estimado>
+      <total_final>15500.00</total_final>
+    </registro>
+  </tabela-evento>
+
+  <!-- Tabela de Fornecedores -->
+  <tabela-fornecedor>
+    <registro>
+      <codigo>50</codigo>
+      <nome_fantasia>Distribuidora Eletrônica Brasil</nome_fantasia>
+      <razao_social>Distribuidora Eletrônica Brasil Ltda</razao_social>
+      <cnpj_cpf>99.888.777/0001-33</cnpj_cpf>
+      <endereco>Av. Industrial, 1000, Zona Franca, Manaus, AM</endereco>
+      <telefone>9233334444</telefone>
+      <tipo_servico>Fornecimento de Equipamentos Eletrônicos</tipo_servico>
+    </registro>
+  </tabela-fornecedor>
+
+  <!-- Tabela de Contas a Receber -->
+  <tabela-contas-receber>
+    <registro>
+      <codigo>10</codigo>
+      <evento_id>1</evento_id>
+      <data_emissao>2025-12-10</data_emissao>
+      <data_vencimento>2026-01-10</data_vencimento>
+      <valor_fatura>15000.00</valor_fatura>
+      <valor_recebido>0.00</valor_recebido>
+      <status>0</status>
+    </registro>
+  </tabela-contas-receber>
+
+  <!-- Tabela de Contas a Pagar -->
+  <tabela-contas-pagar>
+    <registro>
+      <codigo>5</codigo>
+      <fornecedor_id>50</fornecedor_id>
+      <compra_id>1</compra_id>
+      <data_vencimento>2026-01-15</data_vencimento>
+      <valor>3500.00</valor>
+      <status>0</status>
+    </registro>
+  </tabela-contas-pagar>
+
+  <!-- Tabela de Movimentação de Caixa -->
+  <tabela-caixa>
+    <registro>
+      <codigo>100</codigo>
+      <data>2025-12-09</data>
+      <tipo>ENTRADA</tipo>
+      <forma>DEBITO</forma>
+      <valor>5000.00</valor>
+      <descricao>Adiantamento evento ACME</descricao>
+    </registro>
+    <registro>
+      <codigo>101</codigo>
+      <data>2025-12-09</data>
+      <tipo>SAIDA</tipo>
+      <forma>DINHEIRO</forma>
+      <valor>850.00</valor>
+      <descricao>Pagamento aluguel equipamentos</descricao>
+    </registro>
+  </tabela-caixa>
+
+</dados>
